@@ -128,7 +128,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	}
 	// TODO: Handle PodFailure
 
-	if err := r.MustUpdateStatus(ctx, connection, gpu); err != nil {
+	if err := r.mustUpdateStatus(ctx, connection, gpu); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -180,7 +180,7 @@ func (r *TensorFusionConnectionReconciler) handleDeletion(ctx context.Context, c
 		return err
 	}
 
-	return r.MustUpdateStatus(ctx, connection, gpu)
+	return r.mustUpdateStatus(ctx, connection, gpu)
 }
 
 // Helper functions to handle finalizers
@@ -203,7 +203,7 @@ func removeString(slice []string, s string) []string {
 	return result
 }
 
-func (r *TensorFusionConnectionReconciler) MustUpdateStatus(ctx context.Context, connection *tfv1.TensorFusionConnection, gpu *tfv1.GPU) error {
+func (r *TensorFusionConnectionReconciler) mustUpdateStatus(ctx context.Context, connection *tfv1.TensorFusionConnection, gpu *tfv1.GPU) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		// Get the latest version of the connection
 		latestConnection := &tfv1.TensorFusionConnection{}

@@ -38,7 +38,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-operator
-          tags: type=semver,pattern=${{needs.release.outputs.version}}
+          tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
