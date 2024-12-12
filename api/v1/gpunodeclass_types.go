@@ -25,17 +25,47 @@ import (
 
 // GPUNodeClassSpec defines the desired state of GPUNodeClass.
 type GPUNodeClassSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	OSImageFamily string `json:"osImageFamily,omitempty"` // The AMI family to use
 
-	// Foo is an example field of GPUNodeClass. Edit gpunodeclass_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	OSImageSelectorTerms []struct {
+		Name  string `json:"name,omitempty"`  // The name of the AMI
+		Owner string `json:"owner,omitempty"` // The owner of the AMI
+	} `json:"amiSelectorTerms,omitempty"` // Terms to select the AMI
+
+	BlockDeviceMappings []struct {
+		DeviceName string `json:"deviceName,omitempty"` // The device name for the block device
+		Ebs        struct {
+			DeleteOnTermination bool   `json:"deleteOnTermination,omitempty"` // Whether to delete the EBS volume on termination
+			Encrypted           bool   `json:"encrypted,omitempty"`           // Whether the EBS volume is encrypted
+			VolumeSize          string `json:"volumeSize,omitempty"`          // The size of the EBS volume
+			VolumeType          string `json:"volumeType,omitempty"`          // The type of the EBS volume
+		} `json:"ebs,omitempty"`
+	} `json:"blockDeviceMappings,omitempty"` // Block device mappings for the instance
+
+	InstanceProfile string `json:"instanceProfile,omitempty"` // The instance profile to use
+
+	MetadataOptions struct {
+		HttpEndpoint            string `json:"httpEndpoint,omitempty"`            // Whether the HTTP metadata endpoint is enabled
+		HttpProtocolIPv6        string `json:"httpProtocolIPv6,omitempty"`        // Whether IPv6 is enabled for the HTTP metadata endpoint
+		HttpPutResponseHopLimit int    `json:"httpPutResponseHopLimit,omitempty"` // The hop limit for HTTP PUT responses
+		HttpTokens              string `json:"httpTokens,omitempty"`              // The HTTP tokens required for metadata access
+	} `json:"metadataOptions,omitempty"` // Options for instance metadata
+
+	SecurityGroupSelectorTerms []struct {
+		ID string `json:"id,omitempty"` // The ID of the security group
+	} `json:"securityGroupSelectorTerms,omitempty"` // Terms to select security groups
+
+	SubnetSelectorTerms []struct {
+		ID string `json:"id,omitempty"` // The ID of the subnet
+	} `json:"subnetSelectorTerms,omitempty"` // Terms to select subnets
+
+	Tags map[string]string `json:"tags,omitempty"` // Tags associated with the resource
+
+	UserData string `json:"userData,omitempty"` // User data script for the instance
 }
 
 // GPUNodeClassStatus defines the observed state of GPUNodeClass.
 type GPUNodeClassStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 // +kubebuilder:object:root=true

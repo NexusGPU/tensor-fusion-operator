@@ -25,17 +25,53 @@ import (
 
 // GPUNodeSpec defines the desired state of GPUNode.
 type GPUNodeSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	ManageMode GPUNodeManageMode `json:"manageMode,omitempty"`
 
-	// Foo is an example field of GPUNode. Edit gpunode_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// if not all GPU cards should be used, specify the GPU card indices, default to empty,
+	// onboard all GPU cards to the pool
+	GPUCardIndices []int `json:"gpuCardIndices,omitempty"`
 }
+
+type GPUNodeManageMode string
+
+const (
+	GPUNodeManageModeNone   GPUNodeManageMode = "manual"
+	GPUNodeManageModeAuto   GPUNodeManageMode = "selected"
+	GPUNodeManageModeManual GPUNodeManageMode = "provisioned"
+)
 
 // GPUNodeStatus defines the observed state of GPUNode.
 type GPUNodeStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Phase TensorFusionClusterPhase `json:"phase,omitempty"`
+
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	TotalGPUs   int32  `json:"totalGPUs,omitempty"`
+	TotalTFlops int32  `json:"totalTFlops,omitempty"`
+	TotalVRAM   string `json:"totalVRAM,omitempty"`
+
+	AvailableTFlops int32  `json:"availableTFlops,omitempty"`
+	AvailableVRAM   string `json:"availableVRAM,omitempty"`
+
+	HypervisorStatus struct {
+		HypervisorState   string      `json:"hypervisorState,omitempty"`
+		HypervisorVersion string      `json:"hypervisorVersion,omitempty"`
+		LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
+	} `json:"hypervisorStatus,omitempty"`
+
+	NodeInfo struct {
+		Hostname         string `json:"hostname,omitempty"`
+		IP               string `json:"ip,omitempty"`
+		KernalVersion    string `json:"kernalVersion,omitempty"`
+		OSImage          string `json:"osImage,omitempty"`
+		GPUDriverVersion string `json:"gpuDriverVersion,omitempty"`
+		GPUModel         string `json:"gpuModel,omitempty"`
+		GPUCount         int32  `json:"gpuCount,omitempty"`
+		OperatingSystem  string `json:"operatingSystem,omitempty"`
+		Architecture     string `json:"architecture,omitempty"`
+	} `json:"nodeInfo,omitempty"`
+	
+	LoadedModels []string `json:"loadedModels,omitempty"`
 }
 
 // +kubebuilder:object:root=true
