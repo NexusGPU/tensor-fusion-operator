@@ -31,4 +31,36 @@ resources:
   version: v1
   webhooks:
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tensor-fusion.ai
+  kind: TensorFusionCluster
+  path: github.com/NexusGPU/tensor-fusion-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tensor-fusion.ai
+  kind: GPUPool
+  path: github.com/NexusGPU/tensor-fusion-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tensor-fusion.ai
+  kind: GPUNode
+  path: github.com/NexusGPU/tensor-fusion-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: tensor-fusion.ai
+  kind: GPUNodeClass
+  path: github.com/NexusGPU/tensor-fusion-operator/api/v1
+  version: v1
 version: "3"

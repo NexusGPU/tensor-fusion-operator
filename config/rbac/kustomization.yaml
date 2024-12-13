@@ -22,6 +22,14 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- gpunodeclass_editor_role.yaml
+- gpunodeclass_viewer_role.yaml
+- gpunode_editor_role.yaml
+- gpunode_viewer_role.yaml
+- gpupool_editor_role.yaml
+- gpupool_viewer_role.yaml
+- tensorfusioncluster_editor_role.yaml
+- tensorfusioncluster_viewer_role.yaml
 - gpu_editor_role.yaml
 - gpu_viewer_role.yaml
 - tensorfusionconnection_editor_role.yaml

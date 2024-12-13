@@ -1,0 +1,27 @@
+# permissions for end users to edit gpunodeclasses.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: tensor-fusion-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: gpunodeclass-editor-role
+rules:
+- apiGroups:
+  - tensor-fusion.ai
+  resources:
+  - gpunodeclasses
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - tensor-fusion.ai
+  resources:
+  - gpunodeclasses/status
+  verbs:
+  - get

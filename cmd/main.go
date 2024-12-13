@@ -191,13 +191,42 @@ func main() {
 		}
 	}
 
-	if err = (&controller.PodReconciler{
+
+	if err = (&controller.TensorFusionClusterReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionCluster")
+		os.Exit(1)
+	}
+	if err = (&controller.GPUPoolReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GPUPool")
+		os.Exit(1)
+	}
+	if err = (&controller.GPUNodeReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GPUNode")
+		os.Exit(1)
+	}
+	if err = (&controller.GPUNodeClassReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "GPUNodeClass")
+		os.Exit(1)
+	}
+  if err = (&controller.PodReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Pod")
-		os.Exit(1)
-	}
+    os.Exit(1)
+  }
 	// +kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
