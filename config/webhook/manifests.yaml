@@ -10,7 +10,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate--v1-pod
+      path: /mutate-v1-pod
   failurePolicy: Fail
   name: mpod-v1.kb.io
   rules:
@@ -24,3 +24,9 @@ webhooks:
     resources:
     - pods
   sideEffects: None
+  objectSelector:
+    matchExpressions:
+      - key: tensor-fusion.ai/enabled
+        operator: In
+        values:
+          - "true"

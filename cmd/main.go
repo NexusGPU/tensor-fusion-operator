@@ -67,6 +67,8 @@ func main() {
 	var secureMetrics bool
 	var enableHTTP2 bool
 	var tlsOpts []func(*tls.Config)
+	var configFile string
+	flag.StringVar(&configFile, "config", "/etc/tensor-fusion/config.yaml", "Config file of tensor-fusion-operator")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -152,7 +154,13 @@ func main() {
 	}
 
 	ctx := context.Background()
-	config := config.NewDefaultConfig()
+	config, err := config.LoadConfig(configFile)
+	if os.IsNotExist(err) {
+		setupLog.Info("config file is not exists, use default config", "configFile", configFile)
+	} else if err != nil {
+		setupLog.Error(err, "unable to load config", "configFile", configFile, "err", err)
+		os.Exit(1)
+	}
 	scheduler := scheduler.NewNaiveScheduler()
 	if err = (&controller.TensorFusionConnectionReconciler{
 		Client:    mgr.GetClient(),
@@ -216,6 +224,13 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SchedulingConfigTemplate")
+		os.Exit(1)
+	}
+	if err = (&controller.PodReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Pod")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

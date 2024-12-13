@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: controller-manager
-  namespace: system
   labels:
     app.kubernetes.io/name: tensor-fusion-operator
     app.kubernetes.io/managed-by: kustomize
