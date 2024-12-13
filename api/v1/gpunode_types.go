@@ -53,25 +53,29 @@ type GPUNodeStatus struct {
 	AvailableTFlops int32  `json:"availableTFlops,omitempty"`
 	AvailableVRAM   string `json:"availableVRAM,omitempty"`
 
-	HypervisorStatus struct {
-		HypervisorState   string      `json:"hypervisorState,omitempty"`
-		HypervisorVersion string      `json:"hypervisorVersion,omitempty"`
-		LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
-	} `json:"hypervisorStatus,omitempty"`
+	HypervisorStatus NodeHypervisorStatus `json:"hypervisorStatus,omitempty"`
 
-	NodeInfo struct {
-		Hostname         string `json:"hostname,omitempty"`
-		IP               string `json:"ip,omitempty"`
-		KernalVersion    string `json:"kernalVersion,omitempty"`
-		OSImage          string `json:"osImage,omitempty"`
-		GPUDriverVersion string `json:"gpuDriverVersion,omitempty"`
-		GPUModel         string `json:"gpuModel,omitempty"`
-		GPUCount         int32  `json:"gpuCount,omitempty"`
-		OperatingSystem  string `json:"operatingSystem,omitempty"`
-		Architecture     string `json:"architecture,omitempty"`
-	} `json:"nodeInfo,omitempty"`
-	
+	NodeInfo GPUNodeInfo `json:"nodeInfo,omitempty"`
+
 	LoadedModels []string `json:"loadedModels,omitempty"`
+}
+
+type GPUNodeInfo struct {
+	Hostname         string `json:"hostname,omitempty"`
+	IP               string `json:"ip,omitempty"`
+	KernalVersion    string `json:"kernalVersion,omitempty"`
+	OSImage          string `json:"osImage,omitempty"`
+	GPUDriverVersion string `json:"gpuDriverVersion,omitempty"`
+	GPUModel         string `json:"gpuModel,omitempty"`
+	GPUCount         int32  `json:"gpuCount,omitempty"`
+	OperatingSystem  string `json:"operatingSystem,omitempty"`
+	Architecture     string `json:"architecture,omitempty"`
+}
+
+type NodeHypervisorStatus struct {
+	HypervisorState   string      `json:"hypervisorState,omitempty"`
+	HypervisorVersion string      `json:"hypervisorVersion,omitempty"`
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

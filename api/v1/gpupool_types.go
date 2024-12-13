@@ -20,6 +20,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -44,10 +45,9 @@ type NodeManagerConfig struct {
 // NodeProvisioner or NodeSelector, they are exclusive.
 // NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
 type NodeProvisioner struct {
-	NodeClass    string         `json:"nodeClass,omitempty"`
-	Requirements []Requirement  `json:"requirements,omitempty"`
-	Resources    map[string]any `json:"resources,omitempty"`
-	Taints       []Taint        `json:"taints,omitempty"`
+	NodeClass    string        `json:"nodeClass,omitempty"`
+	Requirements []Requirement `json:"requirements,omitempty"`
+	Taints       []Taint       `json:"taints,omitempty"`
 }
 
 type Requirement struct {
@@ -77,7 +77,7 @@ type NodeCompaction struct {
 type NodeRollingUpdatePolicy struct {
 	// If set to false, updates will be pending in status, and user needs to manually approve updates.
 	// Updates will occur immediately or during the next maintenance window.
-	AutoUpdate      bool          `json:"autoUpdate,omitempty"`
+	AutoUpdate      *bool         `json:"autoUpdate,omitempty"`
 	BatchPercentage string        `json:"batchPercentage,omitempty"`
 	BatchInterval   time.Duration `json:"batchInterval,omitempty"`
 	Duration        time.Duration `json:"duration,omitempty"`
@@ -100,7 +100,7 @@ type MonitorConfig struct {
 }
 
 type AlertConfig struct {
-	Expression map[string]any `json:"expression,omitempty"`
+	Expression runtime.RawExtension `json:"expression,omitempty"`
 }
 
 // Define different QoS and their price.
@@ -131,15 +131,15 @@ type ComponentConfig struct {
 }
 
 type WorkerConfig struct {
-	Image             string         `json:"image,omitempty"` // "stable" | "latest" | "nightly"
-	Port              int            `json:"port,omitempty"`
-	HostNetwork       bool           `json:"hostNetwork,omitempty"`
-	WorkerPodTemplate map[string]any `json:"workerPodTemplate,omitempty"` // Mixin extra spec.
+	Image             string               `json:"image,omitempty"` // "stable" | "latest" | "nightly"
+	Port              int                  `json:"port,omitempty"`
+	HostNetwork       *bool                `json:"hostNetwork,omitempty"`
+	WorkerPodTemplate runtime.RawExtension `json:"workerPodTemplate,omitempty"` // Mixin extra spec.
 }
 
 type HypervisorConfig struct {
-	Image                       string         `json:"image,omitempty"`
-	HypervisorDaemonSetTemplate map[string]any `json:"hypervisorDaemonSetTemplate,omitempty"` // Mixin extra spec.
+	Image                       string               `json:"image,omitempty"`
+	HypervisorDaemonSetTemplate runtime.RawExtension `json:"hypervisorDaemonSetTemplate,omitempty"` // Mixin extra spec.
 }
 
 type ClientConfig struct {
@@ -149,22 +149,22 @@ type ClientConfig struct {
 	ChangeOrRemoveOriginalNodeAffinities ChangeOrRemoveOriginalNodeAffinities `json:"changeOrRemoveOriginalNodeAffinities,omitempty"`
 	ChangeOrRemoveOriginalTolerations    ChangeOrRemoveOriginalTolerations    `json:"changeOrRemoveOriginalTolerations,omitempty"`
 	RemoveOriginalGPUResources           RemoveOriginalGPUResources           `json:"removeOriginalGPUResources,omitempty"`
-	InjectContainerTemplate              map[string]any                       `json:"injectContainerTemplate,omitempty"`
-	PodTemplatePatch                     map[string]any                       `json:"podTemplatePatch,omitempty"` // Add other things to the original pod.
+	InjectContainerTemplate              runtime.RawExtension                 `json:"injectContainerTemplate,omitempty"`
+	PodTemplatePatch                     runtime.RawExtension                 `json:"podTemplatePatch,omitempty"` // Add other things to the original pod.
 }
 
 type ChangeOrRemoveOriginalNodeAffinities struct {
-	Enable           bool              `json:"enable,omitempty"`
+	Enable           *bool             `json:"enable,omitempty"`
 	MatchExpressions []MatchExpression `json:"matchExpressions,omitempty"`
 }
 
 type ChangeOrRemoveOriginalTolerations struct {
-	Enable           bool              `json:"enable,omitempty"`
+	Enable           *bool             `json:"enable,omitempty"`
 	MatchExpressions []MatchExpression `json:"matchExpressions,omitempty"`
 }
 
 type RemoveOriginalGPUResources struct {
-	Enable            bool     `json:"enable,omitempty"`
+	Enable            *bool    `json:"enable,omitempty"`
 	MatchResourceKeys []string `json:"matchResourceKeys,omitempty"`
 }
 
@@ -193,7 +193,7 @@ type SchedulingConfig struct {
 
 type PlacementConfig struct {
 	Mode               PlacementMode `json:"mode,omitempty"`               // "compactFirst" | "lowLoadFirst"
-	AllowUsingLocalGPU bool          `json:"allowUsingLocalGPU,omitempty"` // If false, workloads will not be scheduled directly to GPU nodes with 'localGPU: true'.
+	AllowUsingLocalGPU *bool         `json:"allowUsingLocalGPU,omitempty"` // If false, workloads will not be scheduled directly to GPU nodes with 'localGPU: true'.
 	GPUFilters         []GPUFilter   `json:"gpuFilters,omitempty"`
 }
 
@@ -224,8 +224,8 @@ const (
 //
 // ```
 type GPUFilter struct {
-	Type   string         `json:"type,omitempty"`
-	Params map[string]any `json:"params,omitempty"`
+	Type   string               `json:"type,omitempty"`
+	Params runtime.RawExtension `json:"params,omitempty"`
 }
 
 type AutoScalingConfig struct {
@@ -257,13 +257,16 @@ type AutoSetLimits struct {
 	ExtraTFlopsBufferRatio string        `json:"extraTFlopsBufferRatio,omitempty"`
 	IgnoredDeltaRange      string        `json:"ignoredDeltaRange,omitempty"`
 	ScaleUpStep            string        `json:"scaleUpStep,omitempty"`
-	MaxRatioToRequests     float64       `json:"maxRatioToRequests,omitempty"`
-	Prediction             Prediction    `json:"prediction,omitempty"`
+
+	// the multiplier of requests, to avoid limit set too high, like 5.0
+	MaxRatioToRequests string `json:"maxRatioToRequests,omitempty"`
+
+	Prediction Prediction `json:"prediction,omitempty"`
 }
 
 // To handle burst traffic, scale up in short time (this feature requires GPU context migration & replication, not available yet)
 type AutoSetReplicas struct {
-	Enable                bool          `json:"enable,omitempty"`
+	Enable                *bool         `json:"enable,omitempty"`
 	TargetTFlopsOfLimits  string        `json:"targetTFlopsOfLimits,omitempty"`
 	EvaluationPeriod      time.Duration `json:"evaluationPeriod,omitempty"`
 	ScaleUpStep           string        `json:"scaleUpStep,omitempty"`
@@ -273,11 +276,14 @@ type AutoSetReplicas struct {
 }
 
 type AutoSetRequests struct {
-	PercentileForAutoRequests string        `json:"percentileForAutoRequests,omitempty"`
-	ExtraBufferRatio          float64       `json:"extraBufferRatio,omitempty"`
-	EvaluationPeriod          time.Duration `json:"evaluationPeriod,omitempty"`
-	AggregationPeriod         time.Duration `json:"aggregationPeriod,omitempty"`
-	Prediction                Prediction    `json:"prediction,omitempty"`
+	PercentileForAutoRequests string `json:"percentileForAutoRequests,omitempty"`
+
+	// the request buffer ratio, for example actual usage is 1.0, 10% buffer will be 1.1 as final preferred requests
+	ExtraBufferRatio string `json:"extraBufferRatio,omitempty"`
+
+	EvaluationPeriod  time.Duration `json:"evaluationPeriod,omitempty"`
+	AggregationPeriod time.Duration `json:"aggregationPeriod,omitempty"`
+	Prediction        Prediction    `json:"prediction,omitempty"`
 }
 
 type ScaleToZero struct {
@@ -289,18 +295,18 @@ type AutoFreeze struct {
 	Qos             string        `json:"qos,omitempty"`
 	FreezeToMemTTL  time.Duration `json:"freezeToMemTTL,omitempty"`
 	FreezeToDiskTTL time.Duration `json:"freezeToDiskTTL,omitempty"`
-	Enable          bool          `json:"enable,omitempty"`
+	Enable          *bool         `json:"enable,omitempty"`
 }
 
 type IntelligenceWarmup struct {
-	Enable                  bool          `json:"enable,omitempty"`
+	Enable                  *bool         `json:"enable,omitempty"`
 	Model                   string        `json:"model,omitempty"`
 	IngestHistoryDataPeriod time.Duration `json:"ingestHistoryDataPeriod,omitempty"`
 	PredictionPeriod        time.Duration `json:"predictionPeriod,omitempty"`
 }
 
 type Prediction struct {
-	Enable                  bool          `json:"enable,omitempty"`
+	Enable                  *bool         `json:"enable,omitempty"`
 	Model                   string        `json:"model,omitempty"`
 	IngestHistoryDataPeriod time.Duration `json:"ingestHistoryDataPeriod,omitempty"`
 	PredictionPeriod        time.Duration `json:"predictionPeriod,omitempty"`
@@ -313,7 +319,7 @@ type ReBalancerConfig struct {
 }
 
 type Threshold struct {
-	MatchAny map[string]any `json:"matchAny,omitempty"`
+	MatchAny runtime.RawExtension `json:"matchAny,omitempty"`
 }
 
 type HypervisorScheduling struct {
@@ -321,7 +327,7 @@ type HypervisorScheduling struct {
 }
 
 type MultiProcessQueuing struct {
-	Enable               bool          `json:"enable,omitempty"`
+	Enable               *bool         `json:"enable,omitempty"`
 	Interval             time.Duration `json:"interval,omitempty"`
 	QueueLevelTimeSlices []string      `json:"queueLevelTimeSlices,omitempty"`
 }
@@ -346,28 +352,32 @@ type GPUPoolStatus struct {
 	// If using provisioner, GPU nodes could be outside of the K8S cluster.
 	// The GPUNodes custom resource will be created and deleted automatically.
 	// ProvisioningStatus is to track the status of those outside GPU nodes.
-	ProvisioningStatus struct {
-		InitializingNodes int32 `json:"initializingNodes,omitempty"`
-		TerminatingNodes  int32 `json:"terminatingNodes,omitempty"`
-		AvailableNodes    int32 `json:"availableNodes,omitempty"`
-	} `json:"provisioningStatus,omitempty"`
+	ProvisioningStatus PoolProvisioningStatus `json:"provisioningStatus,omitempty"`
 
 	// when updating any component version or config, poolcontroller will perform rolling update.
 	// the status will be updated periodically, default to 5s, progress will be 0-100.
 	// when the progress is 100, the component version or config is fully updated.
-	ComponentStatus struct {
-		WorkerVersion        string `json:"worker,omitempty"`
-		WorkerConfigSynced   bool   `json:"workerConfigSynced,omitempty"`
-		WorkerUpdateProgress int32  `json:"workerUpdateProgress,omitempty"`
+	ComponentStatus PoolComponentStatus `json:"componentStatus,omitempty"`
+}
 
-		HypervisorVersion        string `json:"hypervisor,omitempty"`
-		HypervisorConfigSynced   bool   `json:"hypervisorConfigSynced,omitempty"`
-		HyperVisorUpdateProgress int32  `json:"hypervisorUpdateProgress,omitempty"`
+type PoolProvisioningStatus struct {
+	InitializingNodes int32 `json:"initializingNodes,omitempty"`
+	TerminatingNodes  int32 `json:"terminatingNodes,omitempty"`
+	AvailableNodes    int32 `json:"availableNodes,omitempty"`
+}
 
-		ClientVersion        string `json:"client,omitempty"`
-		ClientConfigSynced   bool   `json:"clientConfigSynced,omitempty"`
-		ClientUpdateProgress int32  `json:"clientUpdateProgress,omitempty"`
-	} `json:"componentStatus,omitempty"`
+type PoolComponentStatus struct {
+	WorkerVersion        string `json:"worker,omitempty"`
+	WorkerConfigSynced   bool   `json:"workerConfigSynced,omitempty"`
+	WorkerUpdateProgress int32  `json:"workerUpdateProgress,omitempty"`
+
+	HypervisorVersion        string `json:"hypervisor,omitempty"`
+	HypervisorConfigSynced   bool   `json:"hypervisorConfigSynced,omitempty"`
+	HyperVisorUpdateProgress int32  `json:"hypervisorUpdateProgress,omitempty"`
+
+	ClientVersion        string `json:"client,omitempty"`
+	ClientConfigSynced   bool   `json:"clientConfigSynced,omitempty"`
+	ClientUpdateProgress int32  `json:"clientUpdateProgress,omitempty"`
 }
 
 // +kubebuilder:object:root=true

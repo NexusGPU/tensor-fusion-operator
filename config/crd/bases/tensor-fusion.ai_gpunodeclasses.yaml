@@ -39,9 +39,67 @@ spec:
           spec:
             description: GPUNodeClassSpec defines the desired state of GPUNodeClass.
             properties:
-              foo:
-                description: Foo is an example field of GPUNodeClass. Edit gpunodeclass_types.go
-                  to remove/update
+              blockDeviceMappings:
+                items:
+                  properties:
+                    deviceName:
+                      type: string
+                    ebs:
+                      properties:
+                        deleteOnTermination:
+                          type: boolean
+                        encrypted:
+                          type: boolean
+                        volumeSize:
+                          type: string
+                        volumeType:
+                          type: string
+                      type: object
+                  type: object
+                type: array
+              instanceProfile:
+                type: string
+              metadataOptions:
+                properties:
+                  httpEndpoint:
+                    type: string
+                  httpProtocolIPv6:
+                    type: string
+                  httpPutResponseHopLimit:
+                    type: integer
+                  httpTokens:
+                    type: string
+                type: object
+              osImageFamily:
+                type: string
+              osImageSelectorTerms:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    owner:
+                      type: string
+                  type: object
+                type: array
+              securityGroupSelectorTerms:
+                items:
+                  properties:
+                    id:
+                      type: string
+                  type: object
+                type: array
+              subnetSelectorTerms:
+                items:
+                  properties:
+                    id:
+                      type: string
+                  type: object
+                type: array
+              tags:
+                additionalProperties:
+                  type: string
+                type: object
+              userData:
                 type: string
             type: object
           status:
