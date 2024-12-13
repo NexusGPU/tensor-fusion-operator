@@ -46,7 +46,6 @@ type GPUNodeStatus struct {
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	TotalGPUs   int32  `json:"totalGPUs,omitempty"`
 	TotalTFlops int32  `json:"totalTFlops,omitempty"`
 	TotalVRAM   string `json:"totalVRAM,omitempty"`
 
@@ -58,6 +57,10 @@ type GPUNodeStatus struct {
 	NodeInfo GPUNodeInfo `json:"nodeInfo,omitempty"`
 
 	LoadedModels []string `json:"loadedModels,omitempty"`
+
+	TotalGPUs             int32    `json:"totalGPUs,omitempty"`
+	ManagedGPUs           int32    `json:"managedGPUs,omitempty"`
+	ManagedGPUResourceIDs []string `json:"managedGPUResourceIDs,omitempty"`
 }
 
 type GPUNodeInfo struct {
@@ -80,6 +83,7 @@ type NodeHypervisorStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // GPUNode is the Schema for the gpunodes API.
 type GPUNode struct {

@@ -11,6 +11,7 @@ rules:
   - gpunodes
   - gpupools
   - gpus
+  - schedulingconfigtemplates
   - tensorfusionclusters
   - tensorfusionconnections
   verbs:
@@ -28,6 +29,7 @@ rules:
   - gpunodes/finalizers
   - gpupools/finalizers
   - gpus/finalizers
+  - schedulingconfigtemplates/finalizers
   - tensorfusionclusters/finalizers
   - tensorfusionconnections/finalizers
   verbs:
@@ -39,6 +41,7 @@ rules:
   - gpunodes/status
   - gpupools/status
   - gpus/status
+  - schedulingconfigtemplates/status
   - tensorfusionclusters/status
   - tensorfusionconnections/status
   verbs:

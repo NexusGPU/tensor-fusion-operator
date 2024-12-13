@@ -76,7 +76,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 			// we return and requeue the object so that we can pick it up again after updating it
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, nil
 		}
 	} else {
 		// The object is being deleted

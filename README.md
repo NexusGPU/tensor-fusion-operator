@@ -12,6 +12,12 @@
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
 
+### Add new API
+
+```bash
+kubebuilder create api --group "" --version v1 --kind SchedulingConfigTemplate --namespaced false
+```
+
 ### To Deploy on the cluster
 **Build and push your image to the location specified by `IMG`:**
 
@@ -111,4 +117,5 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
 

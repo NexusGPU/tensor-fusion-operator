@@ -78,6 +78,7 @@ type GPUNodeClassStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // GPUNodeClass is the Schema for the gpunodeclasses API.
 type GPUNodeClass struct {

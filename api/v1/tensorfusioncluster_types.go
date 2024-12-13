@@ -17,8 +17,6 @@ limitations under the License.
 package v1
 
 import (
-	"time"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -30,10 +28,10 @@ type TensorFusionClusterSpec struct {
 	GPUPools []GPUPoolDefinition `json:"gpuPools,omitempty"`
 
 	// +optional
-	ComputingVendors []ComputingVendorConfig `json:"computingVendors,omitempty"`
+	ComputingVendor ComputingVendorConfig `json:"computingVendor,omitempty"`
 
 	// +optional
-	StorageVendors []StorageVendorConfig `json:"storageVendors,omitempty"`
+	StorageVendor StorageVendorConfig `json:"storageVendor,omitempty"`
 
 	// +optional
 	DataPipelines DataPipelinesConfig `json:"dataPipelines,omitempty"`
@@ -106,9 +104,13 @@ type EnrollmentKeyConfig struct {
 
 // GPUPool defines how to create a GPU pool, could be URL or inline
 type GPUPoolDefinition struct {
-	Name            string      `json:"name,omitempty"` // Name of the GPU pool.
-	Spec            GPUPoolSpec `json:"spec,omitempty"`
-	SpecTemplateURL string      `json:"specTemplateUrl,omitempty"`
+	Name string `json:"name,omitempty"` // Name of the GPU pool.
+
+	// +optional
+	Spec GPUPoolSpec `json:"spec,omitempty"`
+
+	// +optional
+	SpecTemplateURL string `json:"specTemplateUrl,omitempty"`
 }
 
 // ComputingVendorConfig defines the Cloud vendor connection such as AWS, GCP, Azure etc.
@@ -155,7 +157,8 @@ type DataPipeline4ResourcesConfig struct {
 	// +optional
 	SyncToCloud *bool `json:"syncToCloud,omitempty"` // Whether to sync resources to the cloud.
 
-	SyncPeriod time.Duration `json:"syncPeriod,omitempty"` // Period for syncing resources.
+	// +optional human readable time like 1h, 1d, default to 1h
+	SyncPeriod string `json:"syncPeriod,omitempty"` // Period for syncing resources.
 }
 
 type DataPipeline4TimeSeriesConfig struct {
@@ -178,6 +181,7 @@ type DataPipelineResultRemoteWriteConfig struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // TensorFusionCluster is the Schema for the tensorfusionclusters API.
 type TensorFusionCluster struct {

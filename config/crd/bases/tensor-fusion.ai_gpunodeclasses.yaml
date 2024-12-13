@@ -12,7 +12,7 @@ spec:
     listKind: GPUNodeClassList
     plural: gpunodeclasses
     singular: gpunodeclass
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1
     schema:

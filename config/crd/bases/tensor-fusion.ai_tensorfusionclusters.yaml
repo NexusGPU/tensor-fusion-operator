@@ -12,7 +12,7 @@ spec:
     listKind: TensorFusionClusterList
     plural: tensorfusionclusters
     singular: tensorfusioncluster
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1
     schema:
@@ -40,34 +40,32 @@ spec:
           spec:
             description: TensorFusionClusterSpec defines the desired state of TensorFusionCluster.
             properties:
-              computingVendors:
-                items:
-                  description: ComputingVendorConfig defines the Cloud vendor connection
-                    such as AWS, GCP, Azure etc.
-                  properties:
-                    authType:
-                      type: string
-                    enable:
-                      type: boolean
-                    gpuNodeControllerType:
-                      type: string
-                    name:
-                      type: string
-                    params:
-                      properties:
-                        accessKey:
-                          type: string
-                        iamRole:
-                          type: string
-                        region:
-                          type: string
-                        secretKey:
-                          type: string
-                      type: object
-                    type:
-                      type: string
-                  type: object
-                type: array
+              computingVendor:
+                description: ComputingVendorConfig defines the Cloud vendor connection
+                  such as AWS, GCP, Azure etc.
+                properties:
+                  authType:
+                    type: string
+                  enable:
+                    type: boolean
+                  gpuNodeControllerType:
+                    type: string
+                  name:
+                    type: string
+                  params:
+                    properties:
+                      accessKey:
+                        type: string
+                      iamRole:
+                        type: string
+                      region:
+                        type: string
+                      secretKey:
+                        type: string
+                    type: object
+                  type:
+                    type: string
+                type: object
               dataPipelines:
                 description: DataPipelinesConfig defines the aggregation jobs that
                   can make statistics on the data and then report to cloud if configured.
@@ -75,12 +73,7 @@ spec:
                   resources:
                     properties:
                       syncPeriod:
-                        description: |-
-                          A Duration represents the elapsed time between two instants
-                          as an int64 nanosecond count. The representation limits the
-                          largest representable duration to approximately 290 years.
-                        format: int64
-                        type: integer
+                        type: string
                       syncToCloud:
                         type: boolean
                     type: object
@@ -140,72 +133,72 @@ spec:
                     spec:
                       description: GPUPoolSpec defines the desired state of GPUPool.
                       properties:
+                        capacityConfig:
+                          properties:
+                            maxResources:
+                              properties:
+                                tflops:
+                                  description: Tera floating point operations per
+                                    second
+                                  type: string
+                                vram:
+                                  description: VRAM is short for Video memory, namely
+                                    GPU RAM
+                                  type: string
+                              type: object
+                            minResources:
+                              properties:
+                                tflops:
+                                  description: Tera floating point operations per
+                                    second
+                                  type: string
+                                vram:
+                                  description: VRAM is short for Video memory, namely
+                                    GPU RAM
+                                  type: string
+                              type: object
+                            oversubscription:
+                              properties:
+                                tflopsOversellRatio:
+                                  description: The multipler of TFlops to oversell,
+                                    default to 1 for production, 20 for development
+                                  type: string
+                                vramExpandToHostDisk:
+                                  description: the percentage of Host Disk appending
+                                    to GPU VRAM, default to 70%
+                                  type: string
+                                vramExpandToHostMem:
+                                  description: the percentage of Host RAM appending
+                                    to GPU VRAM, default to 50%
+                                  type: string
+                              type: object
+                            warmResources:
+                              properties:
+                                tflops:
+                                  description: Tera floating point operations per
+                                    second
+                                  type: string
+                                vram:
+                                  description: VRAM is short for Video memory, namely
+                                    GPU RAM
+                                  type: string
+                              type: object
+                          type: object
                         componentConfig:
                           description: Customize system components for seamless onboarding.
                           properties:
                             client:
                               properties:
-                                changeOrRemoveOriginalNodeAffinities:
-                                  properties:
-                                    enable:
-                                      type: boolean
-                                    matchExpressions:
-                                      items:
-                                        properties:
-                                          key:
-                                            type: string
-                                          newValues:
-                                            items:
-                                              type: string
-                                            type: array
-                                          values:
-                                            items:
-                                              type: string
-                                            type: array
-                                        type: object
-                                      type: array
-                                  type: object
-                                changeOrRemoveOriginalTolerations:
-                                  properties:
-                                    enable:
-                                      type: boolean
-                                    matchExpressions:
-                                      items:
-                                        properties:
-                                          key:
-                                            type: string
-                                          newValues:
-                                            items:
-                                              type: string
-                                            type: array
-                                          values:
-                                            items:
-                                              type: string
-                                            type: array
-                                        type: object
-                                      type: array
-                                  type: object
                                 image:
                                   type: string
-                                injectContainerTemplate:
-                                  type: object
-                                  x-kubernetes-preserve-unknown-fields: true
-                                podTemplatePatch:
+                                podTemplateMergePatch:
+                                  description: define how to inject the client pod
                                   type: object
                                   x-kubernetes-preserve-unknown-fields: true
                                 port:
                                   type: integer
                                 protocol:
                                   type: string
-                                removeOriginalGPUResources:
-                                  properties:
-                                    enable:
-                                      type: boolean
-                                    matchResourceKeys:
-                                      items:
-                                        type: string
-                                      type: array
-                                  type: object
                               type: object
                             hypervisor:
                               properties:
@@ -233,17 +226,33 @@ spec:
                             nodeCompaction:
                               properties:
                                 period:
+                                  type: string
+                              type: object
+                            nodePoolRollingUpdatePolicy:
+                              properties:
+                                autoUpdate:
                                   description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
+                                    If set to false, updates will be pending in status, and user needs to manually approve updates.
+                                    Updates will occur immediately or during the next maintenance window.
+                                  type: boolean
+                                batchInterval:
+                                  type: string
+                                batchPercentage:
+                                  type: string
+                                duration:
+                                  type: string
+                                maintenanceWindow:
+                                  properties:
+                                    includes:
+                                      description: crontab syntax.
+                                      items:
+                                        type: string
+                                      type: array
+                                  type: object
                               type: object
                             nodeProvisioner:
-                              description: |-
-                                NodeProvisioner or NodeSelector, they are exclusive.
-                                NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
+                              description: karpenter mode Hypervisor manage GPU nodes
+                                and Workers
                               properties:
                                 nodeClass:
                                   type: string
@@ -272,38 +281,6 @@ spec:
                                     type: object
                                   type: array
                               type: object
-                            nodeRollingUpdatePolicy:
-                              properties:
-                                autoUpdate:
-                                  description: |-
-                                    If set to false, updates will be pending in status, and user needs to manually approve updates.
-                                    Updates will occur immediately or during the next maintenance window.
-                                  type: boolean
-                                batchInterval:
-                                  description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
-                                batchPercentage:
-                                  type: string
-                                duration:
-                                  description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
-                                maintenanceWindow:
-                                  properties:
-                                    includes:
-                                      description: crontab syntax.
-                                      items:
-                                        type: string
-                                      type: array
-                                  type: object
-                              type: object
                             nodeSelector:
                               description: Use existing Kubernetes GPU nodes.
                               items:
@@ -330,12 +307,7 @@ spec:
                             monitor:
                               properties:
                                 interval:
-                                  description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
+                                  type: string
                               type: object
                           type: object
                         qosConfig:
@@ -360,20 +332,35 @@ spec:
                               items:
                                 properties:
                                   limitsOverRequests:
-                                    additionalProperties:
-                                      type: string
+                                    properties:
+                                      tflops:
+                                        description: Tera floating point operations
+                                          per second
+                                        type: string
+                                      vram:
+                                        description: VRAM is short for Video memory,
+                                          namely GPU RAM
+                                        type: string
                                     type: object
                                   qos:
                                     type: string
                                   requests:
-                                    additionalProperties:
-                                      type: string
+                                    properties:
+                                      tflops:
+                                        description: Tera floating point operations
+                                          per second
+                                        type: string
+                                      vram:
+                                        description: VRAM is short for Video memory,
+                                          namely GPU RAM
+                                        type: string
                                     type: object
                                 type: object
                               type: array
                           type: object
                         schedulingConfig:
-                          description: Place the workload and scale smart.
+                          description: Place the workload to right nodes and scale
+                            smart.
                           properties:
                             autoScaling:
                               description: scale the workload based on the usage and
@@ -384,12 +371,7 @@ spec:
                                     burst to existing GPU cards fastly
                                   properties:
                                     evaluationPeriod:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     extraTFlopsBufferRatio:
                                       type: string
                                     ignoredDeltaRange:
@@ -402,22 +384,12 @@ spec:
                                       properties:
                                         enable:
                                           type: boolean
-                                        ingestHistoryDataPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                        historyDataPeriod:
+                                          type: string
                                         model:
                                           type: string
                                         predictionPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                          type: string
                                       type: object
                                     scaleUpStep:
                                       type: string
@@ -429,28 +401,13 @@ spec:
                                     enable:
                                       type: boolean
                                     evaluationPeriod:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     scaleDownCoolDownTime:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     scaleDownStep:
                                       type: string
                                     scaleDownUpDownTime:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     scaleUpStep:
                                       type: string
                                     targetTFlopsOfLimits:
@@ -461,19 +418,9 @@ spec:
                                     usage in the long run
                                   properties:
                                     aggregationPeriod:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     evaluationPeriod:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     extraBufferRatio:
                                       description: the request buffer ratio, for example
                                         actual usage is 1.0, 10% buffer will be 1.1
@@ -485,22 +432,12 @@ spec:
                                       properties:
                                         enable:
                                           type: boolean
-                                        ingestHistoryDataPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                        historyDataPeriod:
+                                          type: string
                                         model:
                                           type: string
                                         predictionPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                          type: string
                                       type: object
                                   type: object
                                 scaleToZero:
@@ -513,19 +450,9 @@ spec:
                                           enable:
                                             type: boolean
                                           freezeToDiskTTL:
-                                            description: |-
-                                              A Duration represents the elapsed time between two instants
-                                              as an int64 nanosecond count. The representation limits the
-                                              largest representable duration to approximately 290 years.
-                                            format: int64
-                                            type: integer
+                                            type: string
                                           freezeToMemTTL:
-                                            description: |-
-                                              A Duration represents the elapsed time between two instants
-                                              as an int64 nanosecond count. The representation limits the
-                                              largest representable duration to approximately 290 years.
-                                            format: int64
-                                            type: integer
+                                            type: string
                                           qos:
                                             type: string
                                         type: object
@@ -534,22 +461,12 @@ spec:
                                       properties:
                                         enable:
                                           type: boolean
-                                        ingestHistoryDataPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                        historyDataPeriod:
+                                          type: string
                                         model:
                                           type: string
                                         predictionPeriod:
-                                          description: |-
-                                            A Duration represents the elapsed time between two instants
-                                            as an int64 nanosecond count. The representation limits the
-                                            largest representable duration to approximately 290 years.
-                                          format: int64
-                                          type: integer
+                                          type: string
                                       type: object
                                   type: object
                               type: object
@@ -562,12 +479,7 @@ spec:
                                     enable:
                                       type: boolean
                                     interval:
-                                      description: |-
-                                        A Duration represents the elapsed time between two instants
-                                        as an int64 nanosecond count. The representation limits the
-                                        largest representable duration to approximately 290 years.
-                                      format: int64
-                                      type: integer
+                                      type: string
                                     queueLevelTimeSlices:
                                       items:
                                         type: string
@@ -606,19 +518,9 @@ spec:
                                 implemented by trigger a simulation scheduling and advise better GPU nodes for scheduler
                               properties:
                                 internal:
-                                  description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
+                                  type: string
                                 reBalanceCoolDownTime:
-                                  description: |-
-                                    A Duration represents the elapsed time between two instants
-                                    as an int64 nanosecond count. The representation limits the
-                                    largest representable duration to approximately 290 years.
-                                  format: int64
-                                  type: integer
+                                  type: string
                                 threshold:
                                   properties:
                                     matchAny:
@@ -627,34 +529,34 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        schedulingConfigTemplate:
+                          type: string
                       type: object
                     specTemplateUrl:
                       type: string
                   type: object
                 type: array
-              storageVendors:
-                items:
-                  description: StorageVendorConfig defines Postgres database with
-                    extensions for timeseries storage and other resource aggregation
-                    results, system events and diagnostics reports etc.
-                  properties:
-                    image:
+              storageVendor:
+                description: StorageVendorConfig defines Postgres database with extensions
+                  for timeseries storage and other resource aggregation results, system
+                  events and diagnostics reports etc.
+                properties:
+                  image:
+                    type: string
+                  installCloudNativePGOperator:
+                    type: boolean
+                  mode:
+                    type: string
+                  pgClusterTemplate:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  pgExtensions:
+                    items:
                       type: string
-                    installCloudNativePGOperator:
-                      type: boolean
-                    mode:
-                      type: string
-                    pgClusterTemplate:
-                      type: object
-                      x-kubernetes-preserve-unknown-fields: true
-                    pgExtensions:
-                      items:
-                        type: string
-                      type: array
-                    storageClass:
-                      type: string
-                  type: object
-                type: array
+                    type: array
+                  storageClass:
+                    type: string
+                type: object
             type: object
           status:
             description: TensorFusionClusterStatus defines the observed state of TensorFusionCluster.
