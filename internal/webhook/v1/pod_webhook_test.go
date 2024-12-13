@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,12 +98,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 			resp := mutator.Handle(ctx, req)
 			Expect(resp.Allowed).To(BeTrue())
 			Expect(resp.Patches).NotTo(BeEmpty())
-
-			// Verify TensorFusionConnection was created
-			tfConnList := &tfv1.TensorFusionConnectionList{}
-			err = client.List(ctx, tfConnList)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tfConnList.Items).To(HaveLen(1))
 		})
 
 		It("should handle pods without TF requirements", func() {
@@ -172,11 +168,31 @@ var _ = Describe("TensorFusionPodMutator", func() {
 				},
 			}
 
-			reqs := parseTFReq(pod)
+			reqs := ParseTFReq(pod)
 			Expect(reqs).To(HaveLen(1))
 			Expect(reqs[0].ContainerName).To(Equal("test-container"))
 			Expect(reqs[0].Tflops.String()).To(Equal("100"))
 			Expect(reqs[0].Vram.String()).To(Equal("16Gi"))
+		})
+	})
+
+	Context("patchTFClient", func() {
+		It("should apply the patch to the pod", func() {
+			pod := &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "test-container",
+						},
+					},
+				},
+			}
+			patch, err := mutator.patchTFClient(pod, []TFReq{{ContainerName: "test-container", Tflops: resource.MustParse("100"), Vram: resource.MustParse("16Gi")}})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(patch).NotTo(BeEmpty())
+			Expect(patch).To(HaveLen(2))
+			Expect(patch[1].Path).To(Equal("/spec/initContainers"))
+			Expect(patch[1].Operation).To(Equal("add"))
 		})
 	})
 })

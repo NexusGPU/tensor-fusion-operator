@@ -11,6 +11,8 @@ jobs:
     permissions:
       #  to create release tags (cycjimmy/semantic-release-action)
       contents: write
+      issues: write
+      pull-requests: write
       
     runs-on: ubuntu-latest
     outputs:
@@ -43,6 +45,7 @@ jobs:
         with:
           images: tensorfusion/tensor-fusion-operator
           tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
+
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:

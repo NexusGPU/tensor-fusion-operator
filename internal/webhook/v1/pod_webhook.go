@@ -22,12 +22,11 @@ import (
 	"fmt"
 	"net/http"
 
-	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,11 +39,13 @@ import (
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
 func SetupPodWebhookWithManager(mgr ctrl.Manager, config *config.PodMutator) error {
 	webhookServer := mgr.GetWebhookServer()
+
 	webhookServer.Register("/mutate-v1-pod",
 		&admission.Webhook{
 			Handler: &TensorFusionPodMutator{
-				Config: config,
-				Client: mgr.GetClient(),
+				Config:  config,
+				decoder: admission.NewDecoder(runtime.NewScheme()),
+				Client:  mgr.GetClient(),
 			},
 		})
 	return nil
@@ -66,7 +67,7 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	log := log.FromContext(ctx)
 	log.Info("Mutating pod", "name", pod.Name, "namespace", pod.Namespace)
 
-	reqs := parseTFReq(pod)
+	reqs := ParseTFReq(pod)
 	if len(reqs) == 0 {
 		return admission.Allowed("no tensor fusion requirements found")
 	}
@@ -75,16 +76,6 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	patches, err := m.patchTFClient(pod, reqs)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	// generate tensor fusion connections and apply to cluster
-	tfConnections := generateTensorFusionConnection(pod, reqs)
-
-	for _, tfConnection := range tfConnections {
-		if err := m.Client.Create(ctx, tfConnection); err != nil {
-			log.Error(err, "Failed to create TensorFusionConnection")
-			return admission.Errored(http.StatusInternalServerError, err)
-		}
 	}
 
 	return admission.Patched("tensor fusion component patched", patches...)
@@ -102,7 +93,7 @@ type TFReq struct {
 	Vram          resource.Quantity
 }
 
-func parseTFReq(pod *corev1.Pod) []TFReq {
+func ParseTFReq(pod *corev1.Pod) []TFReq {
 	if pod.Annotations == nil {
 		return nil
 	}
@@ -150,29 +141,39 @@ func parseTFReq(pod *corev1.Pod) []TFReq {
 }
 
 func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) ([]jsonpatch.JsonPatchOperation, error) {
-	podPatch := m.Config.PatchStrategicMerge
-	// Copy containers
-	podPatch.Spec.Containers = append([]corev1.Container{}, podPatch.Spec.Containers...)
+	// Convert the current pod to JSON
+	currentBytes, err := json.Marshal(pod)
+	if err != nil {
+		return nil, fmt.Errorf("marshal current pod: %v", err)
+	}
 
 	// Patch env vars
 	for _, req := range tfReq {
-		for _, container := range podPatch.Spec.Containers {
+		for i := range pod.Spec.Containers {
+			container := &pod.Spec.Containers[i]
 			if container.Name == req.ContainerName {
 				container.Env = append(container.Env, m.Config.PatchEnvVars...)
 			}
 		}
 	}
+	envPatchedStatus, err := json.Marshal(pod)
+	if err != nil {
+		return nil, fmt.Errorf("marshal current pod: %v", err)
+	}
+	patches, err := jsonpatch.CreatePatch(currentBytes, envPatchedStatus)
+	if err != nil {
+		return nil, fmt.Errorf("patch env: %v", err)
+	}
+
+	podPatch := m.Config.PatchStrategicMerge
+	// Copy containers
+	podPatch.Spec.Containers = append([]corev1.Container{}, podPatch.Spec.Containers...)
 
 	// Convert the strategic merge patch to JSON
 	patchBytes, err := json.Marshal(m.Config.PatchStrategicMerge)
+
 	if err != nil {
 		return nil, fmt.Errorf("marshal patch: %v", err)
-	}
-
-	// Convert the current pod to JSON
-	currentBytes, err := json.Marshal(pod)
-	if err != nil {
-		return nil, fmt.Errorf("marshal current pod: %v", err)
 	}
 
 	// Apply the strategic merge patch
@@ -182,7 +183,8 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 	}
 
 	// Generate JSON patch operations by comparing original and patched pod
-	patches, err := jsonpatch.CreatePatch(currentBytes, resultBytes)
+
+	strategicpatches, err := jsonpatch.CreatePatch(currentBytes, resultBytes)
 	if err != nil {
 		return nil, fmt.Errorf("create json patch: %v", err)
 	}
@@ -192,44 +194,6 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 		return nil, fmt.Errorf("unmarshal patched pod: %v", err)
 	}
 
+	patches = append(patches, strategicpatches...)
 	return patches, nil
-}
-
-func generateTensorFusionConnection(pod *corev1.Pod, tfReq []TFReq) []*tfv1.TensorFusionConnection {
-	connections := make([]*tfv1.TensorFusionConnection, 0, len(tfReq))
-
-	for _, req := range tfReq {
-		connection := &tfv1.TensorFusionConnection{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-tf-%s", pod.Name, req.ContainerName),
-				Namespace: pod.Namespace,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: "v1",
-						Kind:       "Pod",
-						Name:       pod.Name,
-						UID:        pod.UID,
-					},
-				},
-			},
-			Spec: tfv1.TensorFusionConnectionSpec{
-				Resources: tfv1.Resources{
-					Requests: tfv1.Resource{
-						Tflops: req.Tflops,
-						Vram:   req.Vram,
-					},
-					Limits: tfv1.Resource{
-						Tflops: req.Tflops,
-						Vram:   req.Vram,
-					},
-				},
-			},
-			Status: tfv1.TensorFusionConnectionStatus{
-				Phase: tfv1.TensorFusionConnectionPending,
-			},
-		}
-		connections = append(connections, connection)
-	}
-
-	return connections
 }
