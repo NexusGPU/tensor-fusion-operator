@@ -8,6 +8,16 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+type Pod struct {
+	Spec PodSpec `json:"spec,omitempty"`
+}
+
+type PodSpec struct {
+	InitContainers   []corev1.Container `json:"initContainers,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,20,rep,name=initContainers"`
+	Containers       []corev1.Container `json:"containers,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,2,rep,name=containers"`
+	RuntimeClassName *string            `json:"runtimeClassName,omitempty" protobuf:"bytes,29,opt,name=runtimeClassName"`
+}
+
 type Config struct {
 	Worker      Worker      `json:"worker"`
 	PodMutation PodMutation `json:"podMutation"`
