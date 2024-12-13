@@ -81,6 +81,24 @@ type NodeHypervisorStatus struct {
 	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
 }
 
+type GPUNodeInfo struct {
+	Hostname         string `json:"hostname,omitempty"`
+	IP               string `json:"ip,omitempty"`
+	KernalVersion    string `json:"kernalVersion,omitempty"`
+	OSImage          string `json:"osImage,omitempty"`
+	GPUDriverVersion string `json:"gpuDriverVersion,omitempty"`
+	GPUModel         string `json:"gpuModel,omitempty"`
+	GPUCount         int32  `json:"gpuCount,omitempty"`
+	OperatingSystem  string `json:"operatingSystem,omitempty"`
+	Architecture     string `json:"architecture,omitempty"`
+}
+
+type NodeHypervisorStatus struct {
+	HypervisorState   string      `json:"hypervisorState,omitempty"`
+	HypervisorVersion string      `json:"hypervisorVersion,omitempty"`
+	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
