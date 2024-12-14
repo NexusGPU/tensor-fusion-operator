@@ -127,6 +127,13 @@ spec:
                 items:
                   type: string
                 type: array
+              managedGPUResourceIDs:
+                items:
+                  type: string
+                type: array
+              managedGPUs:
+                format: int32
+                type: integer
               nodeInfo:
                 properties:
                   architecture:
