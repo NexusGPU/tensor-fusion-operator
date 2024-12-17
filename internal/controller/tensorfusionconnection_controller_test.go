@@ -75,7 +75,7 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 				WorkerGenerator: &worker.WorkerGenerator{
-					PodTemplate: &config.WorkerTemplate,
+					PodTemplate: &config.Worker,
 				},
 			}
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
