@@ -167,7 +167,7 @@ func main() {
 		Scheme:    mgr.GetScheme(),
 		Scheduler: scheduler,
 		WorkerGenerator: &worker.WorkerGenerator{
-			PodTemplate: &config.WorkerTemplate,
+			PodTemplate: &config.Worker,
 		},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionConnection")

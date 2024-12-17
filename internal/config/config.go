@@ -8,24 +8,14 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-type Pod struct {
-	Spec PodSpec `json:"spec,omitempty"`
-}
-
-type PodSpec struct {
-	InitContainers   []corev1.Container `json:"initContainers,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,20,rep,name=initContainers"`
-	Containers       []corev1.Container `json:"containers,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,2,rep,name=containers"`
-	RuntimeClassName *string            `json:"runtimeClassName,omitempty" protobuf:"bytes,29,opt,name=runtimeClassName"`
-}
-
 type Config struct {
-	WorkerTemplate corev1.PodTemplate `json:"workerTemplate"`
-	PodMutator     PodMutator         `json:"podMutator"`
+	Worker     corev1.PodTemplate `json:"worker"`
+	PodMutator PodMutator         `json:"podMutator"`
 }
 
 type PodMutator struct {
-	PatchStrategicMerge Pod             `json:"patchStrategicMerge"`
-	PatchEnvVars        []corev1.EnvVar `json:"envVars"`
+	PatchToPod       any `json:"patchToPod"`
+	PatchToContainer any `json:"patchToContainer"`
 }
 
 func LoadConfig(filename string) (*Config, error) {
@@ -43,7 +33,7 @@ func LoadConfig(filename string) (*Config, error) {
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		WorkerTemplate: corev1.PodTemplate{
+		Worker: corev1.PodTemplate{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					TerminationGracePeriodSeconds: ptr.To[int64](0),
@@ -58,9 +48,9 @@ func NewDefaultConfig() *Config {
 			},
 		},
 		PodMutator: PodMutator{
-			PatchStrategicMerge: Pod{
-				Spec: PodSpec{
-					InitContainers: []corev1.Container{
+			PatchToPod: map[string]any{
+				"spec": map[string]any{
+					"initContainers": []corev1.Container{
 						{
 							Name:  "inject-lib",
 							Image: "busybox:stable-glibc",
@@ -68,10 +58,12 @@ func NewDefaultConfig() *Config {
 					},
 				},
 			},
-			PatchEnvVars: []corev1.EnvVar{
-				{
-					Name:  "LD_PRELOAD",
-					Value: "tensorfusion.so",
+			PatchToContainer: map[string]any{
+				"env": []corev1.EnvVar{
+					{
+						Name:  "LD_PRELOAD",
+						Value: "tensorfusion.so",
+					},
 				},
 			},
 		},
