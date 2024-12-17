@@ -3,9 +3,9 @@ package config
 import (
 	"os"
 
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/yaml"
 )
 
 type Config struct {
@@ -14,8 +14,8 @@ type Config struct {
 }
 
 type PodMutator struct {
-	PatchToPod       any `json:"patchToPod"`
-	PatchToContainer any `json:"patchToContainer"`
+	PatchToPod       map[string]any `json:"patchToPod"`
+	PatchToContainer map[string]any `json:"patchToContainer"`
 }
 
 func LoadConfig(filename string) (*Config, error) {
