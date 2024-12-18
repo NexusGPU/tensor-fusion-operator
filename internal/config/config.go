@@ -20,6 +20,7 @@ type Worker struct {
 }
 
 type PodMutation struct {
+	OperatorEndpoint string         `json:"operatorEndpoint"`
 	PatchToPod       map[string]any `json:"patchToPod"`
 	PatchToContainer map[string]any `json:"patchToContainer"`
 }
@@ -58,6 +59,7 @@ func NewDefaultConfig() *Config {
 			},
 		},
 		PodMutation: PodMutation{
+			OperatorEndpoint: "http://localhost:8080",
 			PatchToPod: map[string]any{
 				"spec": map[string]any{
 					"initContainers": []corev1.Container{

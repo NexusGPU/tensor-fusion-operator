@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 
 	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -34,6 +35,8 @@ import (
 
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
+	"github.com/lithammer/shortuuid/v4"
+	"github.com/samber/lo"
 )
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
@@ -65,7 +68,7 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	}
 
 	log := log.FromContext(ctx)
-	log.Info("Mutating pod", "name", pod.Name, "namespace", pod.Namespace)
+	log.Info("Mutating pod", "generateName", pod.GenerateName, "namespace", pod.Namespace)
 
 	reqs := ParseTFReq(pod)
 	if len(reqs) == 0 {
@@ -88,9 +91,11 @@ func (m *TensorFusionPodMutator) InjectDecoder(d admission.Decoder) error {
 }
 
 type TFReq struct {
-	ContainerName string
-	Tflops        resource.Quantity
-	Vram          resource.Quantity
+	ContainerName       string
+	ConnectionName      string
+	ConnectionNamespace string
+	Tflops              resource.Quantity
+	Vram                resource.Quantity
 }
 
 func ParseTFReq(pod *corev1.Pod) []TFReq {
@@ -114,8 +119,25 @@ func ParseTFReq(pod *corev1.Pod) []TFReq {
 			continue
 		}
 
+		connectionNameEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
+			return e.Name == constants.ConnectionNameEnv
+		})
+
+		if !ok {
+			continue
+		}
+		connectionNamespaceEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
+			return e.Name == constants.ConnectionNamespaceEnv
+		})
+
+		if !ok {
+			continue
+		}
+
 		req := TFReq{
-			ContainerName: containerName,
+			ContainerName:       containerName,
+			ConnectionName:      connectionNameEnv.Name,
+			ConnectionNamespace: connectionNamespaceEnv.Name,
 		}
 
 		// Parse TFLOPS requirement
@@ -152,6 +174,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 		for i := range pod.Spec.Containers {
 			container := &pod.Spec.Containers[i]
 			if container.Name == req.ContainerName {
+				// patch from config
 				containerJSON, err := json.Marshal(container)
 				if err != nil {
 					return nil, fmt.Errorf("marshal container: %v", err)
@@ -165,10 +188,26 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 				if err != nil {
 					return nil, fmt.Errorf("apply strategic merge patch to container: %v", err)
 				}
-
 				if err := json.Unmarshal(patchedJSON, container); err != nil {
 					return nil, fmt.Errorf("unmarshal patched container: %v", err)
 				}
+
+				// add connection env
+				connectionName := fmt.Sprintf("%s-tf-worker-%s", pod.GenerateName+container.Name, shortuuid.New())
+				connectionNamespace := pod.Namespace
+
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name:  constants.ConnectionNameEnv,
+					Value: connectionName,
+				})
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name:  constants.ConnectionNamespaceEnv,
+					Value: connectionNamespace,
+				})
+				container.Env = append(container.Env, corev1.EnvVar{
+					Name:  constants.GetConnectionURLEnv,
+					Value: path.Join(m.Config.OperatorEndpoint, fmt.Sprintf("/api/connection?name=%s,namespace=%s", connectionName, connectionNamespace)),
+				})
 			}
 		}
 	}

@@ -82,8 +82,8 @@ func GenerateTensorFusionConnection(pod *corev1.Pod, tfReq []webhookv1.TFReq) []
 	for _, req := range tfReq {
 		connection := &tfv1.TensorFusionConnection{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("%s-tf-%s", pod.Name, req.ContainerName),
-				Namespace: pod.Namespace,
+				Name:      req.ConnectionName,
+				Namespace: req.ConnectionNamespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: "v1",

@@ -16,4 +16,8 @@ const (
 	VRAMContainerAnnotationFormat   = TensorFusionDomain + "/vram-%s"
 
 	PendingRequeueDuration = time.Second * 3
+
+	GetConnectionURLEnv    = "TENSOR_FUSION_OPERATOR_GET_CONNECTION_URL"
+	ConnectionNameEnv      = "TENSOR_FUSION_CONNECTION_NAME"
+	ConnectionNamespaceEnv = "TENSOR_FUSION_CONNECTION_NAMESPACE"
 )
