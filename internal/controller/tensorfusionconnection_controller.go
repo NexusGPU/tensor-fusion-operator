@@ -116,18 +116,20 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
-	// Start worker job
-	workerPod, err := r.tryStartWorker(ctx, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
-	if err != nil {
-		log.Error(err, "Failed to start worker pod")
-		return ctrl.Result{}, err
-	}
+	if connection.Status.Phase != tfv1.TensorFusionConnectionPending {
+		// Start worker job
+		workerPod, err := r.tryStartWorker(ctx, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
+		if err != nil {
+			log.Error(err, "Failed to start worker pod")
+			return ctrl.Result{}, err
+		}
 
-	if workerPod.Status.Phase == corev1.PodRunning {
-		connection.Status.Phase = tfv1.TensorFusionConnectionRunning
-		connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(gpu, connection, workerPod)
+		if workerPod.Status.Phase == corev1.PodRunning {
+			connection.Status.Phase = tfv1.TensorFusionConnectionRunning
+			connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(gpu, connection, workerPod)
+		}
+		// TODO: Handle PodFailure
 	}
-	// TODO: Handle PodFailure
 
 	if err := r.mustUpdateStatus(ctx, connection, gpu); err != nil {
 		return ctrl.Result{}, err
