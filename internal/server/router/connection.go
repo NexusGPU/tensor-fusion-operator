@@ -36,7 +36,7 @@ func (cr *ConnectionRouter) Get(ctx *gin.Context) {
 	}
 
 	if conn.Status.Phase == tfv1.TensorFusionConnectionRunning {
-		ctx.JSON(200, conn.Status.ConnectionURL)
+		ctx.String(200, conn.Status.ConnectionURL)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (cr *ConnectionRouter) Get(ctx *gin.Context) {
 	// Wait for connection updates
 	for conn := range ch {
 		if conn.Status.Phase == tfv1.TensorFusionConnectionRunning {
-			ctx.JSON(200, conn.Status.ConnectionURL)
+			ctx.String(200, conn.Status.ConnectionURL)
 			return
 		}
 	}
