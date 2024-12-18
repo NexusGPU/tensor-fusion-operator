@@ -19,7 +19,12 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses
+  - gpunodes
+  - gpupools
   - gpus
+  - schedulingconfigtemplates
+  - tensorfusionclusters
   - tensorfusionconnections
   verbs:
   - create
@@ -32,14 +37,24 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses/finalizers
+  - gpunodes/finalizers
+  - gpupools/finalizers
   - gpus/finalizers
+  - schedulingconfigtemplates/finalizers
+  - tensorfusionclusters/finalizers
   - tensorfusionconnections/finalizers
   verbs:
   - update
 - apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses/status
+  - gpunodes/status
+  - gpupools/status
   - gpus/status
+  - schedulingconfigtemplates/status
+  - tensorfusionclusters/status
   - tensorfusionconnections/status
   verbs:
   - get

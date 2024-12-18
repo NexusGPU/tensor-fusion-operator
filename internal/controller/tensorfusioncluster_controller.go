@@ -25,6 +25,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
+)
+
+var (
+	tensorFusionClusterFinalizer = constants.TensorFusionFinalizer
 )
 
 // TensorFusionClusterReconciler reconciles a TensorFusionCluster object
@@ -37,19 +42,62 @@ type TensorFusionClusterReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionclusters/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionclusters/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the TensorFusionCluster object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
+	tfc := &tensorfusionaiv1.TensorFusionCluster{}
+	err := r.Get(ctx, req.NamespacedName, tfc)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "unable to fetch TensorFusionCluster")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// add a finalizer to the object
+	if !containsString(tfc.Finalizers, tensorFusionClusterFinalizer) {
+		tfc.Finalizers = append(tfc.Finalizers, tensorFusionClusterFinalizer)
+		err = r.Update(ctx, tfc)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "unable to update TensorFusionCluster")
+			return ctrl.Result{}, err
+		}
+	}
+
+	// examine DeletionTimestamp to determine if object is under deletion
+	if tfc.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then we should add the finalizer and update the object. Finally we
+		// return and requeue the object so that we can pick it up again after
+		// updating it.
+		if !containsString(tfc.Finalizers, tensorFusionClusterFinalizer) {
+			tfc.Finalizers = append(tfc.Finalizers, tensorFusionClusterFinalizer)
+			if err := r.Update(ctx, tfc); err != nil {
+				log.FromContext(ctx).Error(err, "unable to update TensorFusionCluster")
+				return ctrl.Result{}, err
+			}
+			// we return and requeue the object so that we can pick it up again after updating it
+			return ctrl.Result{}, nil
+		}
+	} else {
+		// The object is being deleted
+		if containsString(tfc.Finalizers, tensorFusionClusterFinalizer) {
+			// our finalizer is present, so lets handle any external dependency
+			if err := r.Delete(ctx, tfc); err != nil {
+				// if fail to delete the external dependency here, return with error
+				// so that it can be retried
+				return ctrl.Result{}, err
+			}
+
+			// remove our finalizer from the list and update it.
+			tfc.Finalizers = removeString(tfc.Finalizers, tensorFusionClusterFinalizer)
+			if err := r.Update(ctx, tfc); err != nil {
+				log.FromContext(ctx).Error(err, "unable to remove finalizer from TensorFusionCluster")
+				return ctrl.Result{}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }

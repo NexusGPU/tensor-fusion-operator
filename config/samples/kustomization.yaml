@@ -6,4 +6,5 @@ resources:
 - v1_gpupool.yaml
 - v1_gpunode.yaml
 - v1_gpunodeclass.yaml
+- v1_schedulingconfigtemplate.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

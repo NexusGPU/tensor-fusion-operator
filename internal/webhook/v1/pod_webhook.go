@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 )
 
@@ -147,30 +147,43 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 		return nil, fmt.Errorf("marshal current pod: %v", err)
 	}
 
-	// Patch env vars
+	// Patch to Container
 	for _, req := range tfReq {
 		for i := range pod.Spec.Containers {
 			container := &pod.Spec.Containers[i]
 			if container.Name == req.ContainerName {
-				container.Env = append(container.Env, m.Config.PatchEnvVars...)
+				containerJSON, err := json.Marshal(container)
+				if err != nil {
+					return nil, fmt.Errorf("marshal container: %v", err)
+				}
+				patchJSON, err := json.Marshal(m.Config.PatchToContainer)
+				if err != nil {
+					return nil, fmt.Errorf("marshal patchToContainer: %v", err)
+				}
+
+				patchedJSON, err := strategicpatch.StrategicMergePatch(containerJSON, patchJSON, corev1.Container{})
+				if err != nil {
+					return nil, fmt.Errorf("apply strategic merge patch to container: %v", err)
+				}
+
+				if err := json.Unmarshal(patchedJSON, container); err != nil {
+					return nil, fmt.Errorf("unmarshal patched container: %v", err)
+				}
 			}
 		}
 	}
-	envPatchedStatus, err := json.Marshal(pod)
+
+	containerPatchedJSON, err := json.Marshal(pod)
 	if err != nil {
 		return nil, fmt.Errorf("marshal current pod: %v", err)
 	}
-	patches, err := jsonpatch.CreatePatch(currentBytes, envPatchedStatus)
+	patches, err := jsonpatch.CreatePatch(currentBytes, containerPatchedJSON)
 	if err != nil {
-		return nil, fmt.Errorf("patch env: %v", err)
+		return nil, fmt.Errorf("patch to container: %v", err)
 	}
 
-	podPatch := m.Config.PatchStrategicMerge
-	// Copy containers
-	podPatch.Spec.Containers = append([]corev1.Container{}, podPatch.Spec.Containers...)
-
 	// Convert the strategic merge patch to JSON
-	patchBytes, err := json.Marshal(m.Config.PatchStrategicMerge)
+	patchBytes, err := json.Marshal(m.Config.PatchToPod)
 
 	if err != nil {
 		return nil, fmt.Errorf("marshal patch: %v", err)

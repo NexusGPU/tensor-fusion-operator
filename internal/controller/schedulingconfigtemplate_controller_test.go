@@ -28,11 +28,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/worker"
 )
 
-var _ = Describe("TensorFusionConnection Controller", func() {
+var _ = Describe("SchedulingConfigTemplate Controller", func() {
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
 
@@ -42,13 +40,13 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		tensorfusionconnection := &tensorfusionaiv1.TensorFusionConnection{}
+		schedulingconfigtemplate := &tensorfusionaiv1.SchedulingConfigTemplate{}
 
 		BeforeEach(func() {
-			By("creating the custom resource for the Kind TensorFusionConnection")
-			err := k8sClient.Get(ctx, typeNamespacedName, tensorfusionconnection)
+			By("creating the custom resource for the Kind SchedulingConfigTemplate")
+			err := k8sClient.Get(ctx, typeNamespacedName, schedulingconfigtemplate)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &tensorfusionaiv1.TensorFusionConnection{
+				resource := &tensorfusionaiv1.SchedulingConfigTemplate{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -61,23 +59,20 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &tensorfusionaiv1.TensorFusionConnection{}
+			resource := &tensorfusionaiv1.SchedulingConfigTemplate{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
-			By("Cleanup the specific resource instance TensorFusionConnection")
+			By("Cleanup the specific resource instance SchedulingConfigTemplate")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			config := config.NewDefaultConfig()
-			controllerReconciler := &TensorFusionConnectionReconciler{
+			controllerReconciler := &SchedulingConfigTemplateReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
-				WorkerGenerator: &worker.WorkerGenerator{
-					PodTemplate: &config.Worker,
-				},
 			}
+
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})

@@ -184,26 +184,6 @@ func (r *TensorFusionConnectionReconciler) handleDeletion(ctx context.Context, c
 	return r.mustUpdateStatus(ctx, connection, gpu)
 }
 
-// Helper functions to handle finalizers
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) []string {
-	result := []string{}
-	for _, item := range slice {
-		if item != s {
-			result = append(result, item)
-		}
-	}
-	return result
-}
-
 func (r *TensorFusionConnectionReconciler) mustUpdateStatus(ctx context.Context, connection *tfv1.TensorFusionConnection, gpu *tfv1.GPU) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		// Get the latest version of the connection
