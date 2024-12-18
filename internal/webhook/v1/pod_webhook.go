@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path"
 
 	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -200,7 +199,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 				})
 				container.Env = append(container.Env, corev1.EnvVar{
 					Name:  constants.GetConnectionURLEnv,
-					Value: path.Join(m.Config.OperatorEndpoint, fmt.Sprintf("/api/connection?name=%s,namespace=%s", connectionName, connectionNamespace)),
+					Value: fmt.Sprintf("%s/api/connection?name=%s,namespace=%s", m.Config.OperatorEndpoint, connectionName, connectionNamespace),
 				})
 			}
 		}
