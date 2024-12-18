@@ -119,25 +119,8 @@ func ParseTFReq(pod *corev1.Pod) []TFReq {
 			continue
 		}
 
-		connectionNameEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
-			return e.Name == constants.ConnectionNameEnv
-		})
-
-		if !ok {
-			continue
-		}
-		connectionNamespaceEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
-			return e.Name == constants.ConnectionNamespaceEnv
-		})
-
-		if !ok {
-			continue
-		}
-
 		req := TFReq{
-			ContainerName:       containerName,
-			ConnectionName:      connectionNameEnv.Name,
-			ConnectionNamespace: connectionNamespaceEnv.Name,
+			ContainerName: containerName,
 		}
 		connectionNameEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNameEnv
