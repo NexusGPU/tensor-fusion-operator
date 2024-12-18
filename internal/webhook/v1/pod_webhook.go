@@ -37,7 +37,7 @@ import (
 )
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
-func SetupPodWebhookWithManager(mgr ctrl.Manager, config *config.PodMutator) error {
+func SetupPodWebhookWithManager(mgr ctrl.Manager, config *config.PodMutation) error {
 	webhookServer := mgr.GetWebhookServer()
 
 	webhookServer.Register("/mutate-v1-pod",
@@ -53,7 +53,7 @@ func SetupPodWebhookWithManager(mgr ctrl.Manager, config *config.PodMutator) err
 
 type TensorFusionPodMutator struct {
 	Client  client.Client
-	Config  *config.PodMutator
+	Config  *config.PodMutation
 	decoder admission.Decoder
 }
 

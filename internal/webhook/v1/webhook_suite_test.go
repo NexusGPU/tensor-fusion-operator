@@ -119,7 +119,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	conf := config.NewDefaultConfig()
-	err = SetupPodWebhookWithManager(mgr, &conf.PodMutator)
+	err = SetupPodWebhookWithManager(mgr, &conf.PodMutation)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:webhook
