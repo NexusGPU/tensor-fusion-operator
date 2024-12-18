@@ -126,13 +126,13 @@ func ParseTFReq(pod *corev1.Pod) []TFReq {
 			return e.Name == constants.ConnectionNameEnv
 		})
 		if ok {
-			req.ConnectionName = connectionNameEnv.Name
+			req.ConnectionName = connectionNameEnv.Value
 		}
 		connectionNamespaceEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNamespaceEnv
 		})
 		if ok {
-			req.ConnectionNamespace = connectionNamespaceEnv.Name
+			req.ConnectionNamespace = connectionNamespaceEnv.Value
 		}
 		// Parse TFLOPS requirement
 		if hasTflops {
