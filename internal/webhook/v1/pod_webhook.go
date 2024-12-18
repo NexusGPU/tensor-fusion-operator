@@ -119,27 +119,21 @@ func ParseTFReq(pod *corev1.Pod) []TFReq {
 			continue
 		}
 
+		req := TFReq{
+			ContainerName: containerName,
+		}
 		connectionNameEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNameEnv
 		})
-
-		if !ok {
-			continue
+		if ok {
+			req.ConnectionName = connectionNameEnv.Name
 		}
 		connectionNamespaceEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNamespaceEnv
 		})
-
-		if !ok {
-			continue
+		if ok {
+			req.ConnectionNamespace = connectionNamespaceEnv.Name
 		}
-
-		req := TFReq{
-			ContainerName:       containerName,
-			ConnectionName:      connectionNameEnv.Name,
-			ConnectionNamespace: connectionNamespaceEnv.Name,
-		}
-
 		// Parse TFLOPS requirement
 		if hasTflops {
 			tflops, err := resource.ParseQuantity(tflopsStr)
@@ -235,7 +229,6 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 	}
 
 	// Generate JSON patch operations by comparing original and patched pod
-
 	strategicpatches, err := jsonpatch.CreatePatch(currentBytes, resultBytes)
 	if err != nil {
 		return nil, fmt.Errorf("create json patch: %v", err)
