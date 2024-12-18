@@ -167,7 +167,7 @@ func main() {
 		Scheme:    mgr.GetScheme(),
 		Scheduler: scheduler,
 		WorkerGenerator: &worker.WorkerGenerator{
-			PodTemplate: &config.Worker,
+			WorkerConfig: &config.Worker,
 		},
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionConnection")
@@ -185,7 +185,7 @@ func main() {
 
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		if err = webhookcorev1.SetupPodWebhookWithManager(mgr, &config.PodMutator); err != nil {
+		if err = webhookcorev1.SetupPodWebhookWithManager(mgr, &config.PodMutation); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 			os.Exit(1)
 		}

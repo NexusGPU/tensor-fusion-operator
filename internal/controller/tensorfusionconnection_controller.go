@@ -117,15 +117,15 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	// Start worker job
-	phase, err := r.tryStartWorker(ctx, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
+	workerPod, err := r.tryStartWorker(ctx, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
 	if err != nil {
 		log.Error(err, "Failed to start worker pod")
 		return ctrl.Result{}, err
 	}
 
-	if phase == corev1.PodRunning {
+	if workerPod.Status.Phase == corev1.PodRunning {
 		connection.Status.Phase = tfv1.TensorFusionConnectionRunning
-		connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(gpu, connection)
+		connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(gpu, connection, workerPod)
 	}
 	// TODO: Handle PodFailure
 
@@ -141,7 +141,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	return ctrl.Result{}, nil
 }
 
-func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, connection *tfv1.TensorFusionConnection, namespacedName types.NamespacedName) (corev1.PodPhase, error) {
+func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, connection *tfv1.TensorFusionConnection, namespacedName types.NamespacedName) (*corev1.Pod, error) {
 	// Try to get the Pod
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, namespacedName, pod); err != nil {
@@ -149,15 +149,15 @@ func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, c
 			// Pod doesn't exist, create a new one
 			pod = r.WorkerGenerator.GenerateWorkerPod(connection, namespacedName)
 			if err := ctrl.SetControllerReference(connection, pod, r.Scheme); err != nil {
-				return "", fmt.Errorf("set owner reference %w", err)
+				return nil, fmt.Errorf("set owner reference %w", err)
 			}
 			if err := r.Create(ctx, pod); err != nil {
-				return "", fmt.Errorf("create pod %w", err)
+				return nil, fmt.Errorf("create pod %w", err)
 			}
-			return corev1.PodPending, nil
+			return pod, nil
 		}
 	}
-	return pod.Status.Phase, nil
+	return pod, nil
 }
 
 // handleDeletion handles cleanup of external dependencies

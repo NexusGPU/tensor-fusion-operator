@@ -9,11 +9,17 @@ import (
 )
 
 type Config struct {
-	Worker     corev1.PodTemplate `json:"worker"`
-	PodMutator PodMutator         `json:"podMutator"`
+	Worker      Worker      `json:"worker"`
+	PodMutation PodMutation `json:"podMutation"`
 }
 
-type PodMutator struct {
+type Worker struct {
+	corev1.PodTemplate
+	SendPort    int16 `json:"sendPort"`
+	ReceivePort int16 `json:"receivePort"`
+}
+
+type PodMutation struct {
 	PatchToPod       map[string]any `json:"patchToPod"`
 	PatchToContainer map[string]any `json:"patchToContainer"`
 }
@@ -33,21 +39,25 @@ func LoadConfig(filename string) (*Config, error) {
 
 func NewDefaultConfig() *Config {
 	return &Config{
-		Worker: corev1.PodTemplate{
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					TerminationGracePeriodSeconds: ptr.To[int64](0),
-					Containers: []corev1.Container{
-						{
-							Name:    "tensorfusion-worker",
-							Image:   "busybox:stable-glibc",
-							Command: []string{"sleep", "infinity"},
+		Worker: Worker{
+			SendPort:    1234,
+			ReceivePort: 4321,
+			PodTemplate: corev1.PodTemplate{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						TerminationGracePeriodSeconds: ptr.To[int64](0),
+						Containers: []corev1.Container{
+							{
+								Name:    "tensorfusion-worker",
+								Image:   "busybox:stable-glibc",
+								Command: []string{"sleep", "infinity"},
+							},
 						},
 					},
 				},
 			},
 		},
-		PodMutator: PodMutator{
+		PodMutation: PodMutation{
 			PatchToPod: map[string]any{
 				"spec": map[string]any{
 					"initContainers": []corev1.Container{

@@ -57,7 +57,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 		config := config.NewDefaultConfig()
 		mutator = &TensorFusionPodMutator{
 			Client: client,
-			Config: &config.PodMutator,
+			Config: &config.PodMutation,
 		}
 		Expect(mutator.InjectDecoder(decoder)).To(Succeed())
 	})
