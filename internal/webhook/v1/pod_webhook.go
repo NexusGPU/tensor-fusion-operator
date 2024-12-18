@@ -199,7 +199,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFReq) (
 				})
 				container.Env = append(container.Env, corev1.EnvVar{
 					Name:  constants.GetConnectionURLEnv,
-					Value: fmt.Sprintf("%s/api/connection?name=%s,namespace=%s", m.Config.OperatorEndpoint, connectionName, connectionNamespace),
+					Value: fmt.Sprintf("%s/api/connection?name=%s&namespace=%s", m.Config.OperatorEndpoint, connectionName, connectionNamespace),
 				})
 			}
 		}
