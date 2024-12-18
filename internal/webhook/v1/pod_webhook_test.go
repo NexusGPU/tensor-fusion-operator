@@ -78,6 +78,16 @@ var _ = Describe("TensorFusionPodMutator", func() {
 						{
 							Name:  "main",
 							Image: "test-image",
+							Env: []corev1.EnvVar{
+								{
+									Name:  constants.ConnectionNameEnv,
+									Value: "conn1",
+								},
+								{
+									Name:  constants.ConnectionNamespaceEnv,
+									Value: "ns",
+								},
+							},
 						},
 					},
 				},
@@ -163,6 +173,16 @@ var _ = Describe("TensorFusionPodMutator", func() {
 					Containers: []corev1.Container{
 						{
 							Name: "test-container",
+							Env: []corev1.EnvVar{
+								{
+									Name:  constants.ConnectionNameEnv,
+									Value: "conn1",
+								},
+								{
+									Name:  constants.ConnectionNamespaceEnv,
+									Value: "ns",
+								},
+							},
 						},
 					},
 				},
