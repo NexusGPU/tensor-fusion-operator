@@ -15,7 +15,7 @@ type Config struct {
 
 type Worker struct {
 	corev1.PodTemplate
-	Port    int16 `json:"port"`
+	Port int16 `json:"port"`
 }
 
 type PodMutation struct {
@@ -40,7 +40,7 @@ func LoadConfig(filename string) (*Config, error) {
 func NewDefaultConfig() *Config {
 	return &Config{
 		Worker: Worker{
-			Port:    1234,
+			Port: 1234,
 			PodTemplate: corev1.PodTemplate{
 				Template: corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
