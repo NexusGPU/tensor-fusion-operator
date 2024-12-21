@@ -15,7 +15,7 @@ type WorkerGenerator struct {
 }
 
 func (wg *WorkerGenerator) GenerateConnectionURL(_gpu *tfv1.GPU, connection *tfv1.TensorFusionConnection, pod *corev1.Pod) string {
-	return fmt.Sprintf("native+%s+%d+%d", pod.Status.PodIP, wg.WorkerConfig.ReceivePort, wg.WorkerConfig.SendPort)
+	return fmt.Sprintf("native+%s+%d", pod.Status.PodIP, wg.WorkerConfig.Port)
 }
 
 func (wg *WorkerGenerator) GenerateWorkerPod(
