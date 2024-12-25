@@ -118,7 +118,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 
 	if connection.Status.Phase != tfv1.TensorFusionConnectionPending {
 		// Start worker job
-		workerPod, err := r.tryStartWorker(ctx, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
+		workerPod, err := r.tryStartWorker(ctx, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
 		if err != nil {
 			log.Error(err, "Failed to start worker pod")
 			return ctrl.Result{}, err
@@ -126,7 +126,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 
 		if workerPod.Status.Phase == corev1.PodRunning {
 			connection.Status.Phase = tfv1.TensorFusionConnectionRunning
-			connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(gpu, connection, workerPod)
+			connection.Status.ConnectionURL = r.WorkerGenerator.GenerateConnectionURL(connection, workerPod)
 		}
 		// TODO: Handle PodFailure
 	}
@@ -143,13 +143,13 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	return ctrl.Result{}, nil
 }
 
-func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, connection *tfv1.TensorFusionConnection, namespacedName types.NamespacedName) (*corev1.Pod, error) {
+func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, gpu *tfv1.GPU, connection *tfv1.TensorFusionConnection, namespacedName types.NamespacedName) (*corev1.Pod, error) {
 	// Try to get the Pod
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, namespacedName, pod); err != nil {
 		if errors.IsNotFound(err) {
 			// Pod doesn't exist, create a new one
-			pod = r.WorkerGenerator.GenerateWorkerPod(connection, namespacedName)
+			pod = r.WorkerGenerator.GenerateWorkerPod(gpu, connection, namespacedName)
 			if err := ctrl.SetControllerReference(connection, pod, r.Scheme); err != nil {
 				return nil, fmt.Errorf("set owner reference %w", err)
 			}
