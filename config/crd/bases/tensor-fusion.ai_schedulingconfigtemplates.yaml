@@ -12,7 +12,7 @@ spec:
     listKind: SchedulingConfigTemplateList
     plural: schedulingconfigtemplates
     singular: schedulingconfigtemplate
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1
     schema:
@@ -45,7 +45,7 @@ spec:
                 properties:
                   autoSetLimits:
                     description: layer 1 vertical auto-scaling, turbo burst to existing
-                      GPU cards fastly
+                      GPU cards quickly
                     properties:
                       evaluationPeriod:
                         type: string
@@ -73,7 +73,7 @@ spec:
                     type: object
                   autoSetReplicas:
                     description: layer 2 horizontal auto-scaling, scale up to more
-                      GPU cards if max limits threshod hit
+                      GPU cards if max limits threshold hit
                     properties:
                       enable:
                         type: boolean
@@ -83,7 +83,7 @@ spec:
                         type: string
                       scaleDownStep:
                         type: string
-                      scaleDownUpDownTime:
+                      scaleUpCoolDownTime:
                         type: string
                       scaleUpStep:
                         type: string
@@ -184,6 +184,9 @@ spec:
                       type: object
                     type: array
                   mode:
+                    enum:
+                    - CompactFirst
+                    - LowLoadFirst
                     type: string
                 type: object
               reBalancer:
