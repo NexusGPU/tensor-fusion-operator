@@ -18,11 +18,14 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -56,4 +59,21 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tfv1.GPUPool{}).
 		Named("gpupool").
 		Complete(r)
+}
+
+func (r *GPUPoolReconciler) getGPUPool(
+	ctx context.Context,
+	req ctrl.Request,
+) (*tensorfusionaiv1.GPUPool, error) {
+	contextLogger := log.FromContext(ctx)
+	gpupool := &tensorfusionaiv1.GPUPool{}
+	if err := r.Get(ctx, req.NamespacedName, gpupool); err != nil {
+		if apierrs.IsNotFound(err) {
+			contextLogger.Info("Resource has been deleted")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("cannot get the managed resource: %w", err)
+	}
+
+	return gpupool, nil
 }
