@@ -22,8 +22,10 @@ import (
 
 // GPUStatus defines the observed state of GPU.
 type GPUStatus struct {
-	Capacity  Resource `json:"capacity"`
-	Available Resource `json:"available"`
+	UUID         string            `json:"uuid"`
+	NodeSelector map[string]string `json:"nodeSelector"`
+	Capacity     Resource          `json:"capacity"`
+	Available    Resource          `json:"available"`
 }
 
 // +kubebuilder:object:root=true

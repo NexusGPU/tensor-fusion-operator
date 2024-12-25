@@ -75,9 +75,17 @@ spec:
                 - tflops
                 - vram
                 type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                type: object
+              uuid:
+                type: string
             required:
             - available
             - capacity
+            - nodeSelector
+            - uuid
             type: object
         type: object
     served: true
