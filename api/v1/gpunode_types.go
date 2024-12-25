@@ -68,7 +68,7 @@ type GPUNodeStatus struct {
 type GPUNodeInfo struct {
 	Hostname         string `json:"hostname,omitempty"`
 	IP               string `json:"ip,omitempty"`
-	KernalVersion    string `json:"kernalVersion,omitempty"`
+	KernelVersion    string `json:"kernelVersion,omitempty"`
 	OSImage          string `json:"osImage,omitempty"`
 	GPUDriverVersion string `json:"gpuDriverVersion,omitempty"`
 	GPUModel         string `json:"gpuModel,omitempty"`
