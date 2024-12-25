@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,12 +33,13 @@ type GPUNodeSpec struct {
 	GPUCardIndices []int `json:"gpuCardIndices,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Manual;AutoSelect;Provisioned
 type GPUNodeManageMode string
 
 const (
-	GPUNodeManageModeNone   GPUNodeManageMode = "manual"
-	GPUNodeManageModeAuto   GPUNodeManageMode = "selected"
-	GPUNodeManageModeManual GPUNodeManageMode = "provisioned"
+	GPUNodeManageModeManual      GPUNodeManageMode = "Manual"
+	GPUNodeManageModeAutoSelect  GPUNodeManageMode = "AutoSelect"
+	GPUNodeManageModeProvisioned GPUNodeManageMode = "Provisioned"
 )
 
 // GPUNodeStatus defines the observed state of GPUNode.
@@ -46,11 +48,11 @@ type GPUNodeStatus struct {
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	TotalTFlops int32  `json:"totalTFlops,omitempty"`
-	TotalVRAM   string `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
 
-	AvailableTFlops int32  `json:"availableTFlops,omitempty"`
-	AvailableVRAM   string `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
 
 	HypervisorStatus NodeHypervisorStatus `json:"hypervisorStatus,omitempty"`
 
