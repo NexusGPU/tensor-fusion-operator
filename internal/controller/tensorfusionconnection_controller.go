@@ -116,7 +116,13 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
-	if connection.Status.Phase != tfv1.TensorFusionConnectionPending {
+	if gpu == nil && connection.Status.GPU != "" {
+		if err := r.Get(ctx, client.ObjectKey{Name: connection.Status.GPU}, gpu); err != nil {
+			log.Error(err, "Failed to get GPU.", "gpu", connection.Status.GPU)
+		}
+	}
+
+	if connection.Status.Phase != tfv1.TensorFusionConnectionPending && gpu != nil {
 		// Start worker job
 		workerPod, err := r.tryStartWorker(ctx, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
 		if err != nil {
