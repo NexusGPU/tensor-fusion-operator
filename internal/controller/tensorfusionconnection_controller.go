@@ -117,8 +117,10 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	if gpu == nil && connection.Status.GPU != "" {
+		gpu = &tfv1.GPU{}
 		if err := r.Get(ctx, client.ObjectKey{Name: connection.Status.GPU}, gpu); err != nil {
 			log.Error(err, "Failed to get GPU.", "gpu", connection.Status.GPU)
+			gpu = nil
 		}
 	}
 
@@ -216,8 +218,7 @@ func (r *TensorFusionConnectionReconciler) mustUpdateStatus(ctx context.Context,
 			latestgpu := &tfv1.GPU{}
 
 			if err := r.Get(ctx, client.ObjectKey{
-				Name:      gpu.Name,
-				Namespace: gpu.Namespace,
+				Name: gpu.Name,
 			}, latestgpu); err != nil {
 				return err
 			}
