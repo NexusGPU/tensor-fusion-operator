@@ -47,16 +47,27 @@ spec:
                   type: integer
                 type: array
               manageMode:
+                enum:
+                - Manual
+                - AutoSelect
+                - Provisioned
                 type: string
             type: object
           status:
             description: GPUNodeStatus defines the observed state of GPUNode.
             properties:
               availableTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               availableVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
@@ -159,15 +170,27 @@ spec:
               phase:
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.
+                enum:
+                - Initializing
+                - Running
+                - Updating
+                - Destroying
                 type: string
               totalGPUs:
                 format: int32
                 type: integer
               totalTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               totalVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             type: object
         type: object
     served: true

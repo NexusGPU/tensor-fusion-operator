@@ -137,25 +137,61 @@ spec:
                           properties:
                             maxResources:
                               properties:
+                                cpu:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: CPU/Memory is only available when CloudVendor
+                                    connection is enabled
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                memory:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 tflops:
-                                  description: Tera floating point operations per
-                                    second
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 vram:
-                                  description: VRAM is short for Video memory, namely
-                                    GPU RAM
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                               type: object
                             minResources:
                               properties:
+                                cpu:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: CPU/Memory is only available when CloudVendor
+                                    connection is enabled
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                memory:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 tflops:
-                                  description: Tera floating point operations per
-                                    second
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 vram:
-                                  description: VRAM is short for Video memory, namely
-                                    GPU RAM
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                               type: object
                             oversubscription:
                               properties:
@@ -174,14 +210,32 @@ spec:
                               type: object
                             warmResources:
                               properties:
+                                cpu:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: CPU/Memory is only available when CloudVendor
+                                    connection is enabled
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                memory:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 tflops:
-                                  description: Tera floating point operations per
-                                    second
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                                 vram:
-                                  description: VRAM is short for Video memory, namely
-                                    GPU RAM
-                                  type: string
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
                               type: object
                           type: object
                         componentConfig:
@@ -251,12 +305,15 @@ spec:
                                   type: object
                               type: object
                             nodeProvisioner:
-                              description: karpenter mode Hypervisor manage GPU nodes
-                                and Workers
+                              description: |-
+                                NodeProvisioner or NodeSelector, they are exclusive.
+                                NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
                               properties:
-                                nodeClass:
-                                  type: string
-                                requirements:
+                                cpuNodeLabels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                cpuRequirements:
                                   items:
                                     properties:
                                       key:
@@ -269,7 +326,7 @@ spec:
                                         type: array
                                     type: object
                                   type: array
-                                taints:
+                                cpuTaints:
                                   items:
                                     properties:
                                       effect:
@@ -280,6 +337,48 @@ spec:
                                         type: string
                                     type: object
                                   type: array
+                                gpuNodeLabels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                gpuRequirements:
+                                  items:
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                    type: object
+                                  type: array
+                                gpuTaints:
+                                  items:
+                                    properties:
+                                      effect:
+                                        type: string
+                                      key:
+                                        type: string
+                                      value:
+                                        type: string
+                                    type: object
+                                  type: array
+                                mode:
+                                  default: Native
+                                  description: Mode could be Karpenter or Native,
+                                    for Karpenter mode, node provisioner will start
+                                    dummy nodes to provision and warmup GPU nodes,
+                                    do nothing for CPU nodes, for Native mode, provisioner
+                                    will create or compact GPU & CPU nodes based on
+                                    current pods
+                                  enum:
+                                  - Native
+                                  - Karpenter
+                                  type: string
+                                nodeClass:
+                                  type: string
                               type: object
                             nodeSelector:
                               description: Use existing Kubernetes GPU nodes.
@@ -334,26 +433,42 @@ spec:
                                   limitsOverRequests:
                                     properties:
                                       tflops:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
                                         description: Tera floating point operations
                                           per second
-                                        type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                       vram:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
                                         description: VRAM is short for Video memory,
                                           namely GPU RAM
-                                        type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                     type: object
                                   qos:
                                     type: string
                                   requests:
                                     properties:
                                       tflops:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
                                         description: Tera floating point operations
                                           per second
-                                        type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                       vram:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
                                         description: VRAM is short for Video memory,
                                           namely GPU RAM
-                                        type: string
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
                                     type: object
                                 type: object
                               type: array
@@ -368,7 +483,7 @@ spec:
                               properties:
                                 autoSetLimits:
                                   description: layer 1 vertical auto-scaling, turbo
-                                    burst to existing GPU cards fastly
+                                    burst to existing GPU cards quickly
                                   properties:
                                     evaluationPeriod:
                                       type: string
@@ -396,7 +511,7 @@ spec:
                                   type: object
                                 autoSetReplicas:
                                   description: layer 2 horizontal auto-scaling, scale
-                                    up to more GPU cards if max limits threshod hit
+                                    up to more GPU cards if max limits threshold hit
                                   properties:
                                     enable:
                                       type: boolean
@@ -406,7 +521,7 @@ spec:
                                       type: string
                                     scaleDownStep:
                                       type: string
-                                    scaleDownUpDownTime:
+                                    scaleUpCoolDownTime:
                                       type: string
                                     scaleUpStep:
                                       type: string
@@ -510,6 +625,9 @@ spec:
                                     type: object
                                   type: array
                                 mode:
+                                  enum:
+                                  - CompactFirst
+                                  - LowLoadFirst
                                   type: string
                               type: object
                             reBalancer:
@@ -565,10 +683,17 @@ spec:
                 format: int32
                 type: integer
               availableTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               availableVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               cloudConnectionStatus:
                 properties:
                   clusterId:
@@ -651,6 +776,11 @@ spec:
                 default: Initializing
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.
+                enum:
+                - Initializing
+                - Running
+                - Updating
+                - Destroying
                 type: string
               readyGPUPools:
                 items:
@@ -674,10 +804,17 @@ spec:
                 format: int32
                 type: integer
               totalTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               totalVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             type: object
         type: object
     served: true

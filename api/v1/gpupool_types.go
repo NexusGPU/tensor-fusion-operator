@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -36,10 +37,10 @@ type GPUPoolSpec struct {
 }
 
 type CapacityConfig struct {
-	MinResources     GPUResourceUnit  `json:"minResources,omitempty"`
-	MaxResources     GPUResourceUnit  `json:"maxResources,omitempty"`
-	WarmResources    GPUResourceUnit  `json:"warmResources,omitempty"`
-	Oversubscription Oversubscription `json:"oversubscription,omitempty"`
+	MinResources     GPUOrCPUResourceUnit `json:"minResources,omitempty"`
+	MaxResources     GPUOrCPUResourceUnit `json:"maxResources,omitempty"`
+	WarmResources    GPUOrCPUResourceUnit `json:"warmResources,omitempty"`
+	Oversubscription Oversubscription     `json:"oversubscription,omitempty"`
 }
 
 type Oversubscription struct {
@@ -54,7 +55,6 @@ type Oversubscription struct {
 }
 
 type NodeManagerConfig struct {
-	// karpenter mode Hypervisor manage GPU nodes and Workers
 	NodeProvisioner             NodeProvisioner         `json:"nodeProvisioner,omitempty"`
 	NodeSelector                NodeSelector            `json:"nodeSelector,omitempty"`
 	NodeCompaction              NodeCompaction          `json:"nodeCompaction,omitempty"`
@@ -64,10 +64,32 @@ type NodeManagerConfig struct {
 // NodeProvisioner or NodeSelector, they are exclusive.
 // NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
 type NodeProvisioner struct {
-	NodeClass    string        `json:"nodeClass,omitempty"`
-	Requirements []Requirement `json:"requirements,omitempty"`
-	Taints       []Taint       `json:"taints,omitempty"`
+	// Mode could be Karpenter or Native, for Karpenter mode, node provisioner will start dummy nodes to provision and warmup GPU nodes, do nothing for CPU nodes, for Native mode, provisioner will create or compact GPU & CPU nodes based on current pods
+	// +kubebuilder:default=Native
+	// +kubebuilder:validation:Enum=Native;Karpenter
+	Mode NodeProvisionerMode `json:"mode,omitempty"`
+
+	NodeClass       string        `json:"nodeClass,omitempty"`
+	GPURequirements []Requirement `json:"gpuRequirements,omitempty"`
+	// +optional
+	GPUTaints []Taint `json:"gpuTaints,omitempty"`
+	// +optional
+	GPULabels map[string]string `json:"gpuNodeLabels,omitempty"`
+
+	// +optional
+	CPURequirements []Requirement `json:"cpuRequirements,omitempty"`
+	// +optional
+	CPUTaints []Taint `json:"cpuTaints,omitempty"`
+	// +optional
+	CPULabels map[string]string `json:"cpuNodeLabels,omitempty"`
 }
+
+type NodeProvisionerMode string
+
+const (
+	NodeProvisionerModeNative    NodeProvisionerMode = "Native"
+	NodeProvisionerModeKarpenter NodeProvisionerMode = "Karpenter"
+)
 
 type Requirement struct {
 	Key      string   `json:"key,omitempty"`
@@ -138,10 +160,23 @@ type QosDefinition struct {
 
 type GPUResourceUnit struct {
 	// Tera floating point operations per second
-	TFlops string `json:"tflops,omitempty"`
+	TFlops resource.Quantity `json:"tflops,omitempty"`
 
 	// VRAM is short for Video memory, namely GPU RAM
-	VRAM string `json:"vram,omitempty"`
+	VRAM resource.Quantity `json:"vram,omitempty"`
+}
+
+type GPUOrCPUResourceUnit struct {
+	TFlops resource.Quantity `json:"tflops,omitempty"`
+
+	VRAM resource.Quantity `json:"vram,omitempty"`
+
+	// CPU/Memory is only available when CloudVendor connection is enabled
+	// +optional
+	CPU resource.Quantity `json:"cpu,omitempty"`
+
+	// +optional
+	Memory resource.Quantity `json:"memory,omitempty"`
 }
 
 type QosPricing struct {
@@ -193,11 +228,11 @@ type GPUPoolStatus struct {
 	ReadyNodes    int32 `json:"readyNodes,omitempty"`
 	NotReadyNodes int32 `json:"notReadyNodes,omitempty"`
 
-	TotalTFlops int32  `json:"totalTFlops,omitempty"`
-	TotalVRAM   string `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
 
-	AvailableTFlops int32  `json:"availableTFlops,omitempty"`
-	AvailableVRAM   string `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
 
 	// If using provisioner, GPU nodes could be outside of the K8S cluster.
 	// The GPUNodes custom resource will be created and deleted automatically.

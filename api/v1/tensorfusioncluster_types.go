@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -49,11 +50,11 @@ type TensorFusionClusterStatus struct {
 	TotalNodes int32 `json:"totalNodes,omitempty"`
 	TotalGPUs  int32 `json:"totalGPUs,omitempty"`
 
-	TotalTFlops int32  `json:"totalTFlops,omitempty"`
-	TotalVRAM   string `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
 
-	AvailableTFlops int32  `json:"availableTFlops,omitempty"`
-	AvailableVRAM   string `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
 
 	ReadyGPUPools    []string `json:"readyGPUPools,omitempty"`
 	NotReadyGPUPools []string `json:"notReadyGPUPools,omitempty"`
@@ -81,6 +82,7 @@ type ClusterComputingVendorStatus struct {
 	ConnectionState string `json:"connectionState,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Initializing;Running;Updating;Destroying
 // TensorFusionClusterPhase represents the phase of the TensorFusionCluster resource.
 type TensorFusionClusterPhase string
 

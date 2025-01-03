@@ -18,39 +18,71 @@ package controller
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 )
 
 // GPUPoolReconciler reconciles a GPUPool object
 type GPUPoolReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/finalizers,verbs=update
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the GPUPool object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
+// 1. Start or select GPU nodes, create GPUNode CR
+// 2. Initialize the resource aggregation job of this Pool if not started
+// 3. Deploy hypervisor and preload images of different components, maintain component status
 func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	debugLogger := log.FromContext(ctx).V(3).WithValues("GPUPool", req.Name)
+	logger := log.FromContext(ctx).WithValues("GPUPool", req.Name)
 
-	// TODO(user): your logic here
+	debugLogger.Info("Reconciling GPUPool")
+	defer func() {
+		debugLogger.Info("Reconciliation loop end")
+	}()
 
+	logger.Info("GPUPool %s", req.String())
+
+	pool, err := r.getGPUPool(ctx, req)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if pool == nil {
+		// TODO
+		return ctrl.Result{}, nil
+	}
+
+	// Run the inner reconcile loop. Translate any ErrNextLoop to an errorless return
+	result, err := r.reconcile(ctx, pool)
+	if errors.Is(err, utils.ErrNextLoop) {
+		return result, nil
+	}
+	if errors.Is(err, utils.ErrTerminateLoop) {
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	return result, nil
+}
+
+func (r *GPUPoolReconciler) reconcile(ctx context.Context, gpupool *tensorfusionaiv1.GPUPool) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
@@ -60,4 +92,21 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tensorfusionaiv1.GPUPool{}).
 		Named("gpupool").
 		Complete(r)
+}
+
+func (r *GPUPoolReconciler) getGPUPool(
+	ctx context.Context,
+	req ctrl.Request,
+) (*tensorfusionaiv1.GPUPool, error) {
+	contextLogger := log.FromContext(ctx)
+	gpupool := &tensorfusionaiv1.GPUPool{}
+	if err := r.Get(ctx, req.NamespacedName, gpupool); err != nil {
+		if apierrs.IsNotFound(err) {
+			contextLogger.Info("Resource has been deleted")
+			return nil, nil
+		}
+		return nil, fmt.Errorf("cannot get the managed resource: %w", err)
+	}
+
+	return gpupool, nil
 }

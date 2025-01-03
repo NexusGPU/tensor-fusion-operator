@@ -44,14 +44,15 @@ type PlacementConfig struct {
 	GPUFilters         []GPUFilter   `json:"gpuFilters,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=CompactFirst;LowLoadFirst
 type PlacementMode string
 
 const (
 	// default to compactFirst for cost saving and energy saving
-	PlacementModeCompactFirst PlacementMode = "compactFirst"
+	PlacementModeCompactFirst PlacementMode = "CompactFirst"
 
 	// in some cases, use lowLoadFirst for balance and fairness
-	PlacementModeLowLoadFirst PlacementMode = "lowLoadFirst"
+	PlacementModeLowLoadFirst PlacementMode = "LowLoadFirst"
 )
 
 // GPUFilter is to select eligible GPUs for scheduling.
@@ -76,10 +77,10 @@ type GPUFilter struct {
 }
 
 type AutoScalingConfig struct {
-	// layer 1 vertical auto-scaling, turbo burst to existing GPU cards fastly
+	// layer 1 vertical auto-scaling, turbo burst to existing GPU cards quickly
 	AutoSetLimits AutoSetLimits `json:"autoSetLimits,omitempty"`
 
-	// layer 2 horizontal auto-scaling, scale up to more GPU cards if max limits threshod hit
+	// layer 2 horizontal auto-scaling, scale up to more GPU cards if max limits threshold hit
 	AutoSetReplicas AutoSetReplicas `json:"autoSetReplicas,omitempty"`
 
 	// layer 3 adjusting, to match the actual usage in the long run
@@ -118,7 +119,7 @@ type AutoSetReplicas struct {
 	EvaluationPeriod      string `json:"evaluationPeriod,omitempty"`
 	ScaleUpStep           string `json:"scaleUpStep,omitempty"`
 	ScaleDownStep         string `json:"scaleDownStep,omitempty"`
-	ScaleDownUpDownTime   string `json:"scaleDownUpDownTime,omitempty"`
+	ScaleUpCoolDownTime   string `json:"scaleUpCoolDownTime,omitempty"`
 	ScaleDownCoolDownTime string `json:"scaleDownCoolDownTime,omitempty"`
 }
 
@@ -180,6 +181,7 @@ type SchedulingConfigTemplateStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Cluster
 
 // SchedulingConfigTemplate is the Schema for the schedulingconfigtemplates API.
 type SchedulingConfigTemplate struct {
