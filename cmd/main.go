@@ -66,8 +66,9 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
-	var tlsOpts []func(*tls.Config)
 	var configFile string
+	var tlsOpts []func(*tls.Config)
+
 	flag.StringVar(&configFile, "config", "/etc/tensor-fusion/config.yaml", "Config file of tensor-fusion-operator")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -103,9 +104,10 @@ func main() {
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
-		CertName: "cert",
-		KeyName:  "key",
-		TLSOpts:  tlsOpts,
+		CertName:     "cert",
+		KeyName:      "key",
+		ClientCAName: "ca",
+		TLSOpts:      tlsOpts,
 	})
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
