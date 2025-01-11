@@ -1,0 +1,120 @@
+# Default values for tensor-fusion.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+
+# This is for the secretes for pulling an image from a private repository more information can be found here: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+imagePullSecrets: []
+# This is to override the chart name.
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: ""
+
+#This section builds out the service account more information can be found here: https://kubernetes.io/docs/concepts/security/service-accounts/
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Automatically mount a ServiceAccount's API credentials?
+  automount: true
+  # Annotations to add to the service account
+  annotations: {}
+
+hypervisor:
+  greptimedbEendpoint: greptimedb-standalone.greptimedb.svc.cluster.local:4001
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - ubuntu
+
+
+controller:
+  # This will set the replicaset count more information can be found here: https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/
+  replicaCount: 1
+
+  # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
+  image:
+    repository: tensorfusion/tensor-fusion-operator
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "latest"
+  # This is for setting Kubernetes Annotations to a Pod.
+  # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/ 
+  podAnnotations: {}
+  tolerations: []
+  affinity: {}
+  admissionWebhooks:
+    failurePolicy: Fail
+    secretName: tensor-fusion-webhook-secret
+    patch:
+      image: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.0
+
+  config:
+    worker:
+      port: 9999
+      template:
+        spec:
+          terminationGracePeriodSeconds: 0
+          runtimeClassName: nvidia
+          volumes:
+            - name: worker-sock
+              hostPath:
+                path: /tensor-fusion/worker/sock
+                type: DirectoryOrCreate
+          hostNetwork: true
+          hostPID: true
+          containers:
+            - name: tensor-fusion-worker
+              image: tensorfusion/tensor-fusion-worker:latest
+              env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      apiVersion: v1
+                      fieldPath: metadata.name
+                - name: TF_ENABLE_LOG
+                  value: '1'
+              volumeMounts:
+                - name: worker-sock
+                  mountPath: /tensor-fusion/worker/sock
+              command:
+                - /home/app/tensor-fusion-worker
+                - -n
+                - native
+                - -p
+                - '9999'
+                - -a
+                - '0x1129'
+                - -l
+                - /tensor-fusion/worker/sock/$(POD_NAME).sock
+
+    podMutation:
+      operatorEndpoint: http://tensor-fusion-controller.tensor-fusion:8080
+      patchToContainer:
+        volumeMounts:
+          - mountPath: /tensor-fusion
+            name: tf-libs
+        env:
+          - name: LD_PRELOAD
+            value: /tensor-fusion/libcuda.so
+          - name: TF_ENABLE_LOG
+            value: '1'
+      patchToPod:
+        spec:
+          volumes:
+            - name: tf-libs
+              emptyDir: {}
+          initContainers:
+            - name: inject-lib
+              image: tensorfusion/tensor-fusion-client:latest
+              command:
+                - sh
+                - -c
+                - cp /home/app/*.so /tensor-fusion/
+              volumeMounts:
+                - mountPath: /tensor-fusion
+                  name: tf-libs
+          

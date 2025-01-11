@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-create-admission-webhook-secret
+  namespace: {{ include "tensor-fusion.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+{{- if .Capabilities.APIVersions.Has "batch/v1alpha1" }}
+  # Alpha feature since k8s 1.12
+  ttlSecondsAfterFinished: 0
+{{- end }}
+  template:
+    metadata:
+      name: {{ include "tensor-fusion.fullname" . }}-create-admission-webhook-secret
+    spec:
+      containers:
+        - name: create
+          image: {{ .Values.controller.admissionWebhooks.patch.image }}
+          args:
+            - create
+            - --host={{ include "tensor-fusion.fullname" . }}-webhook,{{ include "tensor-fusion.fullname" . }}-webhook.$(POD_NAMESPACE).svc
+            - --namespace=$(POD_NAMESPACE)
+            - --secret-name={{.Values.controller.admissionWebhooks.secretName}}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "tensor-fusion.fullname" . }}-webhook-job
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-patch-admission-webhook
+  namespace: {{ include "tensor-fusion.namespace" . }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+{{- if .Capabilities.APIVersions.Has "batch/v1alpha1" }}
+  # Alpha feature since k8s 1.12
+  ttlSecondsAfterFinished: 0
+{{- end }}
+  template:
+    metadata:
+      name: {{ include "tensor-fusion.fullname" . }}-patch-webhook
+    spec:
+      containers:
+        - name: patch
+          image: {{ .Values.controller.admissionWebhooks.patch.image }}
+          args:
+            - patch
+            - --webhook-name={{ include "tensor-fusion.fullname" . }}-mutating-webhook
+            - --namespace=$(POD_NAMESPACE)
+            - --patch-mutating=true
+            - --patch-validating=false
+            - --secret-name={{.Values.controller.admissionWebhooks.secretName}}
+            - --patch-failure-policy={{ .Values.controller.admissionWebhooks.failurePolicy }}
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "tensor-fusion.fullname" . }}-webhook-job

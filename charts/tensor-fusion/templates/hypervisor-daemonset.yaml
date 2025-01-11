@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-hypervisor
+  namespace: {{ include "tensor-fusion.namespace" . }}
+  labels:
+    {{- include "tensor-fusion.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      name: tensor-fusion-hypervisor
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: tensor-fusion-hypervisor
+    spec:
+      volumes:
+        - name: tensor-fusion
+          hostPath:
+            path: /tensor-fusion
+            type: ''
+        - name: vector-config
+          configMap:
+            name: {{ include "tensor-fusion.fullname" . }}-vector-config
+            defaultMode: 420
+        - name: logs
+          emptyDir: {}
+      containers:
+        - name: tensor-fusion-hypervisor
+          image: tensorfusion/tensor-fusion-hypervisor:1.8.1_amd64
+          command:
+            - /home/app/tensor-fusion-hypervisor
+            - '--sock-path'
+            - /tensor-fusion/worker/sock/
+            - '--gpu-metrics-file'
+            - /logs/metrics.log
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+          resources: {}
+          volumeMounts:
+            - name: tensor-fusion
+              mountPath: /tensor-fusion
+            - name: logs
+              mountPath: /logs
+            - name: vector-config
+              mountPath: /etc/vector
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+        - name: vector
+          image: docker.io/timberio/vector:nightly-2025-01-07-debian
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: vector-config
+              mountPath: /etc/vector
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      hostPID: true
+      runtimeClassName: nvidia
+      {{- with .Values.hypervisor.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hypervisor.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 0
+  revisionHistoryLimit: 10

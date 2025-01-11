@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-vector-config
+  namespace: {{ include "tensor-fusion.namespace" . }}
+data:
+  vector.yaml: |
+    sources:
+      metrics:
+        type: file
+        data_dir: /logs
+        include:
+          - /logs/metrics.log
+      in:
+        type: host_metrics
+
+    transforms:
+      parse_influx:
+        type: remap
+        inputs:
+          - metrics
+        source: |
+          . = parse_influxdb!(.message)
+          
+      prepare_metrics:
+        type: remap
+        inputs:
+          - parse_influx
+        source: |
+          .namespace = "tf"
+      
+      log_to_metric:
+        type: log_to_metric
+        inputs:
+          - prepare_metrics
+        all_metrics: true
+        metrics: []
+    sinks:
+      sink_greptimedb_metrics:
+        type: greptimedb_metrics
+        inputs:
+          - log_to_metric
+        new_naming: true
+        endpoint: {{ .Values.hypervisor.greptimedbEendpoint }}
