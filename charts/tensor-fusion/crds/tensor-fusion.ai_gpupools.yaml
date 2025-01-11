@@ -1,0 +1,564 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.4
+  name: gpupools.tensor-fusion.ai
+spec:
+  group: tensor-fusion.ai
+  names:
+    kind: GPUPool
+    listKind: GPUPoolList
+    plural: gpupools
+    singular: gpupool
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: GPUPool is the Schema for the gpupools API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: GPUPoolSpec defines the desired state of GPUPool.
+            properties:
+              capacityConfig:
+                properties:
+                  maxResources:
+                    properties:
+                      tflops:
+                        description: Tera floating point operations per second
+                        type: string
+                      vram:
+                        description: VRAM is short for Video memory, namely GPU RAM
+                        type: string
+                    type: object
+                  minResources:
+                    properties:
+                      tflops:
+                        description: Tera floating point operations per second
+                        type: string
+                      vram:
+                        description: VRAM is short for Video memory, namely GPU RAM
+                        type: string
+                    type: object
+                  oversubscription:
+                    properties:
+                      tflopsOversellRatio:
+                        description: The multipler of TFlops to oversell, default
+                          to 1 for production, 20 for development
+                        type: string
+                      vramExpandToHostDisk:
+                        description: the percentage of Host Disk appending to GPU
+                          VRAM, default to 70%
+                        type: string
+                      vramExpandToHostMem:
+                        description: the percentage of Host RAM appending to GPU VRAM,
+                          default to 50%
+                        type: string
+                    type: object
+                  warmResources:
+                    properties:
+                      tflops:
+                        description: Tera floating point operations per second
+                        type: string
+                      vram:
+                        description: VRAM is short for Video memory, namely GPU RAM
+                        type: string
+                    type: object
+                type: object
+              componentConfig:
+                description: Customize system components for seamless onboarding.
+                properties:
+                  client:
+                    properties:
+                      image:
+                        type: string
+                      podTemplateMergePatch:
+                        description: define how to inject the client pod
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      port:
+                        type: integer
+                      protocol:
+                        type: string
+                    type: object
+                  hypervisor:
+                    properties:
+                      hypervisorDaemonSetTemplate:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      image:
+                        type: string
+                    type: object
+                  worker:
+                    properties:
+                      hostNetwork:
+                        type: boolean
+                      image:
+                        type: string
+                      port:
+                        type: integer
+                      workerPodTemplate:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
+                type: object
+              nodeManagerConfig:
+                properties:
+                  nodeCompaction:
+                    properties:
+                      period:
+                        type: string
+                    type: object
+                  nodePoolRollingUpdatePolicy:
+                    properties:
+                      autoUpdate:
+                        description: |-
+                          If set to false, updates will be pending in status, and user needs to manually approve updates.
+                          Updates will occur immediately or during the next maintenance window.
+                        type: boolean
+                      batchInterval:
+                        type: string
+                      batchPercentage:
+                        type: string
+                      duration:
+                        type: string
+                      maintenanceWindow:
+                        properties:
+                          includes:
+                            description: crontab syntax.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                    type: object
+                  nodeProvisioner:
+                    description: karpenter mode Hypervisor manage GPU nodes and Workers
+                    properties:
+                      nodeClass:
+                        type: string
+                      requirements:
+                        items:
+                          properties:
+                            key:
+                              type: string
+                            operator:
+                              type: string
+                            values:
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        type: array
+                      taints:
+                        items:
+                          properties:
+                            effect:
+                              type: string
+                            key:
+                              type: string
+                            value:
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  nodeSelector:
+                    description: Use existing Kubernetes GPU nodes.
+                    items:
+                      properties:
+                        matchAll:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        matchAny:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    type: array
+                type: object
+              observabilityConfig:
+                properties:
+                  alert:
+                    properties:
+                      expression:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
+                  monitor:
+                    properties:
+                      interval:
+                        type: string
+                    type: object
+                type: object
+              qosConfig:
+                description: Define different QoS and their price.
+                properties:
+                  billingPeriod:
+                    type: string
+                  defaultQoS:
+                    type: string
+                  definitions:
+                    items:
+                      properties:
+                        description:
+                          type: string
+                        name:
+                          type: string
+                        priority:
+                          type: integer
+                      type: object
+                    type: array
+                  pricing:
+                    items:
+                      properties:
+                        limitsOverRequests:
+                          properties:
+                            tflops:
+                              description: Tera floating point operations per second
+                              type: string
+                            vram:
+                              description: VRAM is short for Video memory, namely
+                                GPU RAM
+                              type: string
+                          type: object
+                        qos:
+                          type: string
+                        requests:
+                          properties:
+                            tflops:
+                              description: Tera floating point operations per second
+                              type: string
+                            vram:
+                              description: VRAM is short for Video memory, namely
+                                GPU RAM
+                              type: string
+                          type: object
+                      type: object
+                    type: array
+                type: object
+              schedulingConfig:
+                description: Place the workload to right nodes and scale smart.
+                properties:
+                  autoScaling:
+                    description: scale the workload based on the usage and traffic
+                    properties:
+                      autoSetLimits:
+                        description: layer 1 vertical auto-scaling, turbo burst to
+                          existing GPU cards fastly
+                        properties:
+                          evaluationPeriod:
+                            type: string
+                          extraTFlopsBufferRatio:
+                            type: string
+                          ignoredDeltaRange:
+                            type: string
+                          maxRatioToRequests:
+                            description: the multiplier of requests, to avoid limit
+                              set too high, like 5.0
+                            type: string
+                          prediction:
+                            properties:
+                              enable:
+                                type: boolean
+                              historyDataPeriod:
+                                type: string
+                              model:
+                                type: string
+                              predictionPeriod:
+                                type: string
+                            type: object
+                          scaleUpStep:
+                            type: string
+                        type: object
+                      autoSetReplicas:
+                        description: layer 2 horizontal auto-scaling, scale up to
+                          more GPU cards if max limits threshod hit
+                        properties:
+                          enable:
+                            type: boolean
+                          evaluationPeriod:
+                            type: string
+                          scaleDownCoolDownTime:
+                            type: string
+                          scaleDownStep:
+                            type: string
+                          scaleDownUpDownTime:
+                            type: string
+                          scaleUpStep:
+                            type: string
+                          targetTFlopsOfLimits:
+                            type: string
+                        type: object
+                      autoSetRequests:
+                        description: layer 3 adjusting, to match the actual usage
+                          in the long run
+                        properties:
+                          aggregationPeriod:
+                            type: string
+                          evaluationPeriod:
+                            type: string
+                          extraBufferRatio:
+                            description: the request buffer ratio, for example actual
+                              usage is 1.0, 10% buffer will be 1.1 as final preferred
+                              requests
+                            type: string
+                          percentileForAutoRequests:
+                            type: string
+                          prediction:
+                            properties:
+                              enable:
+                                type: boolean
+                              historyDataPeriod:
+                                type: string
+                              model:
+                                type: string
+                              predictionPeriod:
+                                type: string
+                            type: object
+                        type: object
+                      scaleToZero:
+                        description: additional layer to save VRAM, auto-freeze memory
+                          and cool down to RAM and Disk
+                        properties:
+                          autoFreeze:
+                            items:
+                              properties:
+                                enable:
+                                  type: boolean
+                                freezeToDiskTTL:
+                                  type: string
+                                freezeToMemTTL:
+                                  type: string
+                                qos:
+                                  type: string
+                              type: object
+                            type: array
+                          intelligenceWarmup:
+                            properties:
+                              enable:
+                                type: boolean
+                              historyDataPeriod:
+                                type: string
+                              model:
+                                type: string
+                              predictionPeriod:
+                                type: string
+                            type: object
+                        type: object
+                    type: object
+                  hypervisor:
+                    description: single GPU device multi-process queuing and fair
+                      scheduling with QoS constraint
+                    properties:
+                      multiProcessQueuing:
+                        properties:
+                          enable:
+                            type: boolean
+                          interval:
+                            type: string
+                          queueLevelTimeSlices:
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                    type: object
+                  placement:
+                    description: place the client or worker to best matched nodes
+                    properties:
+                      allowUsingLocalGPU:
+                        type: boolean
+                      gpuFilters:
+                        items:
+                          description: "GPUFilter is to select eligible GPUs for scheduling.\n\nexample:\n```yaml\n-
+                            type: avoidTooMuchConnectionsOnSameGPU\nparams:\n\n\tconnectionNum:
+                            150\n\n- type: avoidDifferentZone\nparams:\n\n\t# by default,
+                            GPU worker will be scheduled into the same zone as CPU
+                            Client Pod to align AZ and improve performance\n\ttopologyKey:
+                            topology.kubernetes.io/zone\n\n```"
+                          properties:
+                            params:
+                              type: object
+                              x-kubernetes-preserve-unknown-fields: true
+                            type:
+                              type: string
+                          type: object
+                        type: array
+                      mode:
+                        type: string
+                    type: object
+                  reBalancer:
+                    description: |-
+                      avoid hot GPU devices and continuously balance the workload
+                      implemented by trigger a simulation scheduling and advise better GPU nodes for scheduler
+                    properties:
+                      internal:
+                        type: string
+                      reBalanceCoolDownTime:
+                        type: string
+                      threshold:
+                        properties:
+                          matchAny:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                    type: object
+                type: object
+              schedulingConfigTemplate:
+                type: string
+            type: object
+          status:
+            description: GPUPoolStatus defines the observed state of GPUPool.
+            properties:
+              availableTFlops:
+                format: int32
+                type: integer
+              availableVRAM:
+                type: string
+              cluster:
+                type: string
+              componentStatus:
+                description: |-
+                  when updating any component version or config, poolcontroller will perform rolling update.
+                  the status will be updated periodically, default to 5s, progress will be 0-100.
+                  when the progress is 100, the component version or config is fully updated.
+                properties:
+                  client:
+                    type: string
+                  clientConfigSynced:
+                    type: boolean
+                  clientUpdateProgress:
+                    format: int32
+                    type: integer
+                  hypervisor:
+                    type: string
+                  hypervisorConfigSynced:
+                    type: boolean
+                  hypervisorUpdateProgress:
+                    format: int32
+                    type: integer
+                  worker:
+                    type: string
+                  workerConfigSynced:
+                    type: boolean
+                  workerUpdateProgress:
+                    format: int32
+                    type: integer
+                type: object
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              notReadyNodes:
+                format: int32
+                type: integer
+              phase:
+                description: TensorFusionClusterPhase represents the phase of the
+                  TensorFusionCluster resource.
+                type: string
+              provisioningStatus:
+                description: |-
+                  If using provisioner, GPU nodes could be outside of the K8S cluster.
+                  The GPUNodes custom resource will be created and deleted automatically.
+                  ProvisioningStatus is to track the status of those outside GPU nodes.
+                properties:
+                  availableNodes:
+                    format: int32
+                    type: integer
+                  initializingNodes:
+                    format: int32
+                    type: integer
+                  terminatingNodes:
+                    format: int32
+                    type: integer
+                type: object
+              readyNodes:
+                format: int32
+                type: integer
+              totalGPUs:
+                format: int32
+                type: integer
+              totalNodes:
+                format: int32
+                type: integer
+              totalTFlops:
+                format: int32
+                type: integer
+              totalVRAM:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
