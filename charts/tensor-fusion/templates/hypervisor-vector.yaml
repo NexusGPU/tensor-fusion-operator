@@ -40,5 +40,5 @@ data:
         type: greptimedb_metrics
         inputs:
           - log_to_metric
-        new_naming: true
+        new_naming: false
         endpoint: {{ .Values.hypervisor.greptimedbEendpoint }}
