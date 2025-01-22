@@ -25,9 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 )
 
 var _ = Describe("TensorFusionCluster Controller", func() {
@@ -40,13 +39,13 @@ var _ = Describe("TensorFusionCluster Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		tensorfusioncluster := &tensorfusionaiv1.TensorFusionCluster{}
+		tensorfusioncluster := &tfv1.TensorFusionCluster{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind TensorFusionCluster")
 			err := k8sClient.Get(ctx, typeNamespacedName, tensorfusioncluster)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &tensorfusionaiv1.TensorFusionCluster{
+				resource := &tfv1.TensorFusionCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -59,7 +58,7 @@ var _ = Describe("TensorFusionCluster Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &tensorfusionaiv1.TensorFusionCluster{}
+			resource := &tfv1.TensorFusionCluster{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

@@ -19,45 +19,41 @@ package controller
 import (
 	"context"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 )
 
 // GPUPoolReconciler reconciles a GPUPool object
 type GPUPoolReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	GpuPoolState config.GpuPoolState
+	Scheme       *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the GPUPool object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
-
+	pool := &tfv1.GPUPool{}
+	if err := r.Get(ctx, req.NamespacedName, pool); err != nil {
+		if errors.IsNotFound(err) {
+			r.GpuPoolState.Delete(pool.Name)
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	r.GpuPoolState.Set(pool.Name, &pool.Spec)
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tensorfusionaiv1.GPUPool{}).
+		For(&tfv1.GPUPool{}).
 		Named("gpupool").
 		Complete(r)
 }

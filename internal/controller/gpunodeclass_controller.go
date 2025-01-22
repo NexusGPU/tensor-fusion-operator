@@ -19,12 +19,11 @@ package controller
 import (
 	"context"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 )
 
 // GPUNodeClassReconciler reconciles a GPUNodeClass object
@@ -57,7 +56,7 @@ func (r *GPUNodeClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 // SetupWithManager sets up the controller with the Manager.
 func (r *GPUNodeClassReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tensorfusionaiv1.GPUNodeClass{}).
+		For(&tfv1.GPUNodeClass{}).
 		Named("gpunodeclass").
 		Complete(r)
 }

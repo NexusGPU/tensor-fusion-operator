@@ -21,7 +21,6 @@ rules:
   resources:
   - gpunodeclasses
   - gpunodes
-  - gpupools
   - gpus
   - schedulingconfigtemplates
   - tensorfusionclusters
@@ -39,7 +38,6 @@ rules:
   resources:
   - gpunodeclasses/finalizers
   - gpunodes/finalizers
-  - gpupools/finalizers
   - gpus/finalizers
   - schedulingconfigtemplates/finalizers
   - tensorfusionclusters/finalizers
@@ -51,7 +49,6 @@ rules:
   resources:
   - gpunodeclasses/status
   - gpunodes/status
-  - gpupools/status
   - gpus/status
   - schedulingconfigtemplates/status
   - tensorfusionclusters/status

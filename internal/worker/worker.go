@@ -6,7 +6,6 @@ import (
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/samber/lo"
 	"golang.org/x/exp/rand"
@@ -20,7 +19,7 @@ func init() {
 }
 
 type WorkerGenerator struct {
-	WorkerConfig *config.Worker
+	WorkerConfig *tfv1.WorkerConfig
 }
 
 func (wg *WorkerGenerator) GenerateConnectionURL(connection *tfv1.TensorFusionConnection, pod *corev1.Pod) (string, error) {
@@ -46,7 +45,7 @@ func (wg *WorkerGenerator) GenerateWorkerPod(
 	namespacedName types.NamespacedName,
 	port int,
 ) *corev1.Pod {
-	spec := wg.WorkerConfig.Template.Spec.DeepCopy()
+	spec := wg.WorkerConfig.PodTemplate.Object.(*corev1.PodTemplate).Template.Spec.DeepCopy()
 	if spec.NodeSelector == nil {
 		spec.NodeSelector = make(map[string]string)
 	}

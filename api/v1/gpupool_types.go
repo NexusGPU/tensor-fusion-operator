@@ -157,27 +157,19 @@ type ComponentConfig struct {
 	Client     ClientConfig     `json:"client,omitempty"`
 }
 
-type WorkerConfig struct {
-	Image             string               `json:"image,omitempty"` // "stable" | "latest" | "nightly"
-	Port              int                  `json:"port,omitempty"`
-	HostNetwork       *bool                `json:"hostNetwork,omitempty"`
-	WorkerPodTemplate runtime.RawExtension `json:"workerPodTemplate,omitempty"` // Mixin extra spec.
-}
-
 type HypervisorConfig struct {
 	Image                       string               `json:"image,omitempty"`
 	HypervisorDaemonSetTemplate runtime.RawExtension `json:"hypervisorDaemonSetTemplate,omitempty"` // Mixin extra spec.
 }
 
-// TODO: client mutation webhook need TLS cert, need check using cert-manager or other ways
-type ClientConfig struct {
-	Image    string `json:"image,omitempty"`
-	Protocol string `json:"protocol,omitempty"`
-	Port     int    `json:"port,omitempty"`
+type WorkerConfig struct {
+	PodTemplate runtime.RawExtension `json:"podTemplate"`
+}
 
-	// +optional
-	// define how to inject the client pod
-	PodTemplateMergePatch runtime.RawExtension `json:"podTemplateMergePatch,omitempty"` // Add other things to the original pod.
+type ClientConfig struct {
+	OperatorEndpoint string               `json:"operatorEndpoint"`
+	PatchToPod       runtime.RawExtension `json:"patchToPod"`
+	PatchToContainer runtime.RawExtension `json:"patchToContainer"`
 }
 
 // GPUPoolStatus defines the observed state of GPUPool.

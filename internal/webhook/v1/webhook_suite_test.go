@@ -118,8 +118,8 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	conf := config.NewDefaultConfig()
-	err = SetupPodWebhookWithManager(mgr, &conf.PodMutation)
+	mockGpuPoolState := config.NewMockGpuPoolState()
+	err = SetupPodWebhookWithManager(mgr, mockGpuPoolState)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:webhook

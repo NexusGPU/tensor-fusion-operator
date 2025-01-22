@@ -27,9 +27,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/worker"
 )
 
 var _ = Describe("TensorFusionConnection Controller", func() {
@@ -42,13 +41,13 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		tensorfusionconnection := &tensorfusionaiv1.TensorFusionConnection{}
+		tensorfusionconnection := &tfv1.TensorFusionConnection{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind TensorFusionConnection")
 			err := k8sClient.Get(ctx, typeNamespacedName, tensorfusionconnection)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &tensorfusionaiv1.TensorFusionConnection{
+				resource := &tfv1.TensorFusionConnection{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
@@ -61,7 +60,7 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &tensorfusionaiv1.TensorFusionConnection{}
+			resource := &tfv1.TensorFusionConnection{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -70,13 +69,11 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			config := config.NewDefaultConfig()
+			gpuPoolState := config.NewMockGpuPoolState()
 			controllerReconciler := &TensorFusionConnectionReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-				WorkerGenerator: &worker.WorkerGenerator{
-					WorkerConfig: &config.Worker,
-				},
+				Client:       k8sClient,
+				Scheme:       k8sClient.Scheme(),
+				GpuPoolState: gpuPoolState,
 			}
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,

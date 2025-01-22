@@ -1,0 +1,69 @@
+apiVersion: tensor-fusion.ai/v1
+kind: GPUPool
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-gpupool-sample
+spec:
+  componentConfig:
+    worker:
+      podTemplate:
+        template:
+          spec:
+            terminationGracePeriodSeconds: 0
+            runtimeClassName: nvidia
+            volumes:
+              - name: worker-sock
+                hostPath:
+                  path: /tensor-fusion/worker/sock
+                  type: DirectoryOrCreate
+            hostNetwork: true
+            hostPID: true
+            containers:
+              - name: tensor-fusion-worker
+                image: tensorfusion/tensor-fusion-worker:latest
+                env:
+                  - name: POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        apiVersion: v1
+                        fieldPath: metadata.name
+                  - name: TF_ENABLE_LOG
+                    value: '1'
+                volumeMounts:
+                  - name: worker-sock
+                    mountPath: /tensor-fusion/worker/sock
+                command:
+                  - /home/app/tensor-fusion-worker
+                  - -n
+                  - native
+                  - -p
+                  - '$(TENSOR_FUSION_WORKER_PORT)'
+                  - -a
+                  - '0x1129'
+                  - -l
+                  - /tensor-fusion/worker/sock/$(POD_NAME).sock
+    client:
+      operatorEndpoint: http://{{ include "tensor-fusion.fullname" . }}.{{ include "tensor-fusion.namespace" . }}:8080
+      patchToContainer:
+        volumeMounts:
+          - mountPath: /tensor-fusion
+            name: tf-libs
+        env:
+          - name: LD_PRELOAD
+            value: /tensor-fusion/libcuda.so
+          - name: TF_ENABLE_LOG
+            value: '1'
+      patchToPod:
+        spec:
+          volumes:
+            - name: tf-libs
+              emptyDir: {}
+          initContainers:
+            - name: inject-lib
+              image: tensorfusion/tensor-fusion-client:latest
+              command:
+                - sh
+                - -c
+                - cp /home/app/*.so /tensor-fusion/ && cp nvidia-smi-linux-amd64-550.54.15 /tensor-fusion/nvidia-smi
+              volumeMounts:
+                - mountPath: /tensor-fusion
+                  name: tf-libs

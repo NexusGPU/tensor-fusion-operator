@@ -89,16 +89,18 @@ spec:
                 properties:
                   client:
                     properties:
-                      image:
+                      operatorEndpoint:
                         type: string
-                      podTemplateMergePatch:
-                        description: define how to inject the client pod
+                      patchToContainer:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
-                      port:
-                        type: integer
-                      protocol:
-                        type: string
+                      patchToPod:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    required:
+                    - operatorEndpoint
+                    - patchToContainer
+                    - patchToPod
                     type: object
                   hypervisor:
                     properties:
@@ -110,15 +112,11 @@ spec:
                     type: object
                   worker:
                     properties:
-                      hostNetwork:
-                        type: boolean
-                      image:
-                        type: string
-                      port:
-                        type: integer
-                      workerPodTemplate:
+                      podTemplate:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
+                    required:
+                    - podTemplate
                     type: object
                 type: object
               nodeManagerConfig:

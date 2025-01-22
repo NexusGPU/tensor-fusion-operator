@@ -19,12 +19,11 @@ package controller
 import (
 	"context"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 )
 
 // SchedulingConfigTemplateReconciler reconciles a SchedulingConfigTemplate object
@@ -57,7 +56,7 @@ func (r *SchedulingConfigTemplateReconciler) Reconcile(ctx context.Context, req 
 // SetupWithManager sets up the controller with the Manager.
 func (r *SchedulingConfigTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tensorfusionaiv1.SchedulingConfigTemplate{}).
+		For(&tfv1.SchedulingConfigTemplate{}).
 		Named("schedulingconfigtemplate").
 		Complete(r)
 }

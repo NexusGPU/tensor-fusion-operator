@@ -26,14 +26,13 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/controller"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/scheduler"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/server"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/server/router"
 	webhookcorev1 "github.com/NexusGPU/tensor-fusion-operator/internal/webhook/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/worker"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -55,7 +54,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(tensorfusionaiv1.AddToScheme(scheme))
+	utilruntime.Must(tfv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -65,10 +64,8 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
-	var configFile string
 	var tlsOpts []func(*tls.Config)
 
-	flag.StringVar(&configFile, "config", "/etc/tensor-fusion/config.yaml", "Config file of tensor-fusion-operator")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -154,21 +151,14 @@ func main() {
 	}
 
 	ctx := context.Background()
-	config, err := config.LoadConfig(configFile)
-	if os.IsNotExist(err) {
-		setupLog.Info("config file is not exists, use default config", "configFile", configFile)
-	} else if err != nil {
-		setupLog.Error(err, "unable to load config", "configFile", configFile, "err", err)
-		os.Exit(1)
-	}
+	gpuPoolState := config.NewGpuPoolStateImpl()
+
 	scheduler := scheduler.NewNaiveScheduler()
 	if err = (&controller.TensorFusionConnectionReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		Scheduler: scheduler,
-		WorkerGenerator: &worker.WorkerGenerator{
-			WorkerConfig: &config.Worker,
-		},
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Scheduler:    scheduler,
+		GpuPoolState: gpuPoolState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionConnection")
 		os.Exit(1)
@@ -185,7 +175,7 @@ func main() {
 
 	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		if err = webhookcorev1.SetupPodWebhookWithManager(mgr, &config.PodMutation); err != nil {
+		if err = webhookcorev1.SetupPodWebhookWithManager(mgr, gpuPoolState); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
 			os.Exit(1)
 		}
@@ -199,8 +189,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.GPUPoolReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GpuPoolState: gpuPoolState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUPool")
 		os.Exit(1)

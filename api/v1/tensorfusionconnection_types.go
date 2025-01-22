@@ -33,6 +33,7 @@ type Resources struct {
 
 // TensorFusionConnectionSpec defines the desired state of TensorFusionConnection.
 type TensorFusionConnectionSpec struct {
+	PoolName  string    `json:"poolName"`
 	Resources Resources `json:"resources"`
 }
 

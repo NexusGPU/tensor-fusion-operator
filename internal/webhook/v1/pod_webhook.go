@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/lithammer/shortuuid/v4"
@@ -39,24 +40,24 @@ import (
 )
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
-func SetupPodWebhookWithManager(mgr ctrl.Manager, config *config.PodMutation) error {
+func SetupPodWebhookWithManager(mgr ctrl.Manager, poolState config.GpuPoolState) error {
 	webhookServer := mgr.GetWebhookServer()
 
 	webhookServer.Register("/mutate-v1-pod",
 		&admission.Webhook{
 			Handler: &TensorFusionPodMutator{
-				Config:  config,
-				decoder: admission.NewDecoder(runtime.NewScheme()),
-				Client:  mgr.GetClient(),
+				PoolState: poolState,
+				decoder:   admission.NewDecoder(runtime.NewScheme()),
+				Client:    mgr.GetClient(),
 			},
 		})
 	return nil
 }
 
 type TensorFusionPodMutator struct {
-	Client  client.Client
-	Config  *config.PodMutation
-	decoder admission.Decoder
+	Client    client.Client
+	PoolState config.GpuPoolState
+	decoder   admission.Decoder
 }
 
 // Handle implements admission.Handler interface.
@@ -69,13 +70,18 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	log := log.FromContext(ctx)
 	log.Info("Mutating pod", "generateName", pod.GenerateName, "namespace", pod.Namespace)
 
-	resources := ParseTFResources(pod)
+	poolName, resources := ParseTFResources(m.PoolState, pod)
 	if len(resources) == 0 {
 		return admission.Allowed("no tensor fusion requirements found")
 	}
 
+	gpuPoolSpec := m.PoolState.Get(poolName)
+	if gpuPoolSpec == nil {
+		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("gpu pool(%s) does not exist", poolName))
+	}
+
 	// 1. Inject initContainer and env variables
-	patches, err := m.patchTFClient(pod, resources)
+	patches, err := m.patchTFClient(pod, &gpuPoolSpec.ComponentConfig.Client, resources)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -99,15 +105,20 @@ type TFResource struct {
 	VramLimit           resource.Quantity
 }
 
-func ParseTFResources(pod *corev1.Pod) []TFResource {
+func ParseTFResources(poolState config.GpuPoolState, pod *corev1.Pod) (poolName string, resources []TFResource) {
 	if pod.Annotations == nil {
-		return nil
+		return "", nil
 	}
 
-	reqs := make([]TFResource, 0, len(pod.Spec.Containers))
+	resources = make([]TFResource, 0, len(pod.Spec.Containers))
+	enabled, poolName := tfIsEnabled(poolState, pod)
 
 	for _, container := range pod.Spec.Containers {
 		containerName := container.Name
+
+		if !enabled {
+			continue
+		}
 
 		// Check if TF requirements exist for this container
 		tflopsReqKey := fmt.Sprintf(constants.TFLOPSRequestAnnotationFormat, containerName)
@@ -125,26 +136,26 @@ func ParseTFResources(pod *corev1.Pod) []TFResource {
 			continue
 		}
 
-		req := TFResource{
+		res := TFResource{
 			ContainerName: containerName,
 		}
 		connectionNameEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNameEnv
 		})
 		if ok {
-			req.ConnectionName = connectionNameEnv.Value
+			res.ConnectionName = connectionNameEnv.Value
 		}
 		connectionNamespaceEnv, ok := lo.Find(container.Env, func(e corev1.EnvVar) bool {
 			return e.Name == constants.ConnectionNamespaceEnv
 		})
 		if ok {
-			req.ConnectionNamespace = connectionNamespaceEnv.Value
+			res.ConnectionNamespace = connectionNamespaceEnv.Value
 		}
 		// Parse TFLOPS request
 		if hasTflopsReq {
 			tflops, err := resource.ParseQuantity(tflopsReqStr)
 			if err == nil {
-				req.TflopsRequest = tflops
+				res.TflopsRequest = tflops
 			}
 		}
 
@@ -152,7 +163,7 @@ func ParseTFResources(pod *corev1.Pod) []TFResource {
 		if hasVramReq {
 			vram, err := resource.ParseQuantity(vramReqStr)
 			if err == nil {
-				req.VramRequest = vram
+				res.VramRequest = vram
 			}
 		}
 
@@ -160,7 +171,7 @@ func ParseTFResources(pod *corev1.Pod) []TFResource {
 		if hasTflopsReq {
 			tflops, err := resource.ParseQuantity(tflopsLimitStr)
 			if err == nil {
-				req.TflopsLimit = tflops
+				res.TflopsLimit = tflops
 			}
 		}
 
@@ -168,17 +179,17 @@ func ParseTFResources(pod *corev1.Pod) []TFResource {
 		if hasVramReq {
 			vram, err := resource.ParseQuantity(vramLimitStr)
 			if err == nil {
-				req.VramLimit = vram
+				res.VramLimit = vram
 			}
 		}
 
-		reqs = append(reqs, req)
+		resources = append(resources, res)
 	}
 
-	return reqs
+	return poolName, resources
 }
 
-func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFResource) ([]jsonpatch.JsonPatchOperation, error) {
+func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tfv1.ClientConfig, tfResources []TFResource) ([]jsonpatch.JsonPatchOperation, error) {
 	// Convert the current pod to JSON
 	currentBytes, err := json.Marshal(pod)
 	if err != nil {
@@ -186,16 +197,16 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFResour
 	}
 
 	// Patch to Container
-	for _, req := range tfReq {
+	for _, res := range tfResources {
 		for i := range pod.Spec.Containers {
 			container := &pod.Spec.Containers[i]
-			if container.Name == req.ContainerName {
+			if container.Name == res.ContainerName {
 				// patch from config
 				containerJSON, err := json.Marshal(container)
 				if err != nil {
 					return nil, fmt.Errorf("marshal container: %v", err)
 				}
-				patchJSON, err := json.Marshal(m.Config.PatchToContainer)
+				patchJSON, err := json.Marshal(clientConfig.PatchToContainer)
 				if err != nil {
 					return nil, fmt.Errorf("marshal patchToContainer: %v", err)
 				}
@@ -222,7 +233,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFResour
 				})
 				container.Env = append(container.Env, corev1.EnvVar{
 					Name:  constants.GetConnectionURLEnv,
-					Value: fmt.Sprintf("%s/api/connection?name=%s&namespace=%s", m.Config.OperatorEndpoint, connectionName, connectionNamespace),
+					Value: fmt.Sprintf("%s/api/connection?name=%s&namespace=%s", clientConfig.OperatorEndpoint, connectionName, connectionNamespace),
 				})
 			}
 		}
@@ -238,7 +249,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFResour
 	}
 
 	// Convert the strategic merge patch to JSON
-	patchBytes, err := json.Marshal(m.Config.PatchToPod)
+	patchBytes, err := json.Marshal(clientConfig.PatchToPod)
 
 	if err != nil {
 		return nil, fmt.Errorf("marshal patch: %v", err)
@@ -263,4 +274,18 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, tfReq []TFResour
 
 	patches = append(patches, strategicpatches...)
 	return patches, nil
+}
+
+func tfIsEnabled(poolState config.GpuPoolState, pod *corev1.Pod) (enabled bool, poolNmae string) {
+	pools := poolState.PoolNames()
+	for _, poolName := range pools {
+		for k, v := range pod.Annotations {
+			enableKey := fmt.Sprintf(constants.EnableAnnotationFormat, poolName)
+			if k == enableKey {
+				enabled = v == "true"
+				return enabled, poolName
+			}
+		}
+	}
+	return false, ""
 }

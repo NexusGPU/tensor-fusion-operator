@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 )
 
@@ -46,7 +46,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	_ = log.FromContext(ctx)
 
 	// TODO(user): your logic here
-	tfc := &tensorfusionaiv1.TensorFusionCluster{}
+	tfc := &tfv1.TensorFusionCluster{}
 	err := r.Get(ctx, req.NamespacedName, tfc)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "unable to fetch TensorFusionCluster")
@@ -105,7 +105,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 // SetupWithManager sets up the controller with the Manager.
 func (r *TensorFusionClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tensorfusionaiv1.TensorFusionCluster{}).
+		For(&tfv1.TensorFusionCluster{}).
 		Named("tensorfusioncluster").
 		Complete(r)
 }

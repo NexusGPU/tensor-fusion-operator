@@ -8,10 +8,6 @@
         "env": true
     },
     "target": {
-        "namespace": "tensor-fusion",
-        "path": {
-            "deployment": "tensor-fusion-operator-controller-manager",
-            "container": "manager"
-        }
+        "namespace": "tensor-fusion"
     }
 }

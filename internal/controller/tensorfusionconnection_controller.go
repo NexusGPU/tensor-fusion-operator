@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	scheduler "github.com/NexusGPU/tensor-fusion-operator/internal/scheduler"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/worker"
@@ -38,9 +39,9 @@ import (
 // TensorFusionConnectionReconciler reconciles a TensorFusionConnection object
 type TensorFusionConnectionReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	Scheduler       scheduler.Scheduler
-	WorkerGenerator *worker.WorkerGenerator
+	Scheme       *runtime.Scheme
+	Scheduler    scheduler.Scheduler
+	GpuPoolState config.GpuPoolState
 }
 
 var (
@@ -125,8 +126,13 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	}
 
 	if connection.Status.Phase != tfv1.TensorFusionConnectionPending && gpu != nil {
+		gpuPoolState := r.GpuPoolState.Get(connection.Spec.PoolName)
+		if gpuPoolState == nil {
+			return ctrl.Result{}, fmt.Errorf("gpu pool(%s) does not exist", connection.Spec.PoolName)
+		}
+		workerGenerator := &worker.WorkerGenerator{WorkerConfig: &gpuPoolState.ComponentConfig.Worker}
 		// Start worker job
-		workerPod, err := r.tryStartWorker(ctx, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
+		workerPod, err := r.tryStartWorker(ctx, workerGenerator, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
 		if err != nil {
 			log.Error(err, "Failed to start worker pod")
 			return ctrl.Result{}, err
@@ -134,7 +140,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 
 		if workerPod.Status.Phase == corev1.PodRunning {
 			connection.Status.Phase = tfv1.TensorFusionConnectionRunning
-			connection.Status.ConnectionURL, err = r.WorkerGenerator.GenerateConnectionURL(connection, workerPod)
+			connection.Status.ConnectionURL, err = workerGenerator.GenerateConnectionURL(connection, workerPod)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
@@ -154,14 +160,20 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 	return ctrl.Result{}, nil
 }
 
-func (r *TensorFusionConnectionReconciler) tryStartWorker(ctx context.Context, gpu *tfv1.GPU, connection *tfv1.TensorFusionConnection, namespacedName types.NamespacedName) (*corev1.Pod, error) {
+func (r *TensorFusionConnectionReconciler) tryStartWorker(
+	ctx context.Context,
+	workerGenerator *worker.WorkerGenerator,
+	gpu *tfv1.GPU,
+	connection *tfv1.TensorFusionConnection,
+	namespacedName types.NamespacedName,
+) (*corev1.Pod, error) {
 	// Try to get the Pod
 	pod := &corev1.Pod{}
 	if err := r.Get(ctx, namespacedName, pod); err != nil {
 		if errors.IsNotFound(err) {
 			// Pod doesn't exist, create a new one
-			port := r.WorkerGenerator.AllocPort()
-			pod = r.WorkerGenerator.GenerateWorkerPod(gpu, connection, namespacedName, port)
+			port := workerGenerator.AllocPort()
+			pod = workerGenerator.GenerateWorkerPod(gpu, connection, namespacedName, port)
 			if err := ctrl.SetControllerReference(connection, pod, r.Scheme); err != nil {
 				return nil, fmt.Errorf("set owner reference %w", err)
 			}

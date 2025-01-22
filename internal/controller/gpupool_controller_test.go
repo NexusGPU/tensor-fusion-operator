@@ -25,9 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	tensorfusionaiv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 )
 
 var _ = Describe("GPUPool Controller", func() {
@@ -40,26 +40,25 @@ var _ = Describe("GPUPool Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		gpupool := &tensorfusionaiv1.GPUPool{}
+		gpupool := &tfv1.GPUPool{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind GPUPool")
 			err := k8sClient.Get(ctx, typeNamespacedName, gpupool)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &tensorfusionaiv1.GPUPool{
+				resource := &tfv1.GPUPool{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: config.MockGpuPoolSpec,
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
 
 		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &tensorfusionaiv1.GPUPool{}
+			resource := &tfv1.GPUPool{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -69,8 +68,9 @@ var _ = Describe("GPUPool Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &GPUPoolReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:       k8sClient,
+				Scheme:       k8sClient.Scheme(),
+				GpuPoolState: config.NewGpuPoolStateImpl(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
