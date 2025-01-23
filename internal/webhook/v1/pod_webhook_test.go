@@ -70,7 +70,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 					Name:      "test-pod",
 					Namespace: "default",
 					Annotations: map[string]string{
-						fmt.Sprintf(constants.EnableAnnotationFormat, "mock"):        "true",
+						constants.GpuPoolAnnotationKey:                               "mock",
 						fmt.Sprintf(constants.TFLOPSRequestAnnotationFormat, "main"): "10",
 						fmt.Sprintf(constants.VRAMRequestAnnotationFormat, "main"):   "1Gi",
 						fmt.Sprintf(constants.TFLOPSLimitAnnotationFormat, "main"):   "100",
@@ -170,7 +170,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						fmt.Sprintf(constants.EnableAnnotationFormat, "mock"):                  "true",
+						constants.GpuPoolAnnotationKey:                                         "mock",
 						fmt.Sprintf(constants.TFLOPSRequestAnnotationFormat, "test-container"): "10",
 						fmt.Sprintf(constants.VRAMRequestAnnotationFormat, "test-container"):   "1Gi",
 						fmt.Sprintf(constants.TFLOPSLimitAnnotationFormat, "test-container"):   "100",

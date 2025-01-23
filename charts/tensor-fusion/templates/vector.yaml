@@ -52,10 +52,10 @@ data:
         inputs:
           - log_to_metric
         new_naming: false
-        endpoint: {{ .Values.hypervisor.greptimedbEendpoint }}
+        endpoint: {{ .Values.hypervisor.greptimedbEndpoint }}
 
       sink_greptimedb_controller_metrics:
         type: prometheus_remote_write
         inputs:
           - prepare_controller_metrics
-        endpoint: {{ .Values.controller.greptimedbEendpoint }}
+        endpoint: {{ .Values.controller.greptimedbEndpoint }}

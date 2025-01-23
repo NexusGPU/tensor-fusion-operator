@@ -111,14 +111,13 @@ func ParseTFResources(poolState config.GpuPoolState, pod *corev1.Pod) (poolName 
 	}
 
 	resources = make([]TFResource, 0, len(pod.Spec.Containers))
-	enabled, poolName := tfIsEnabled(poolState, pod)
+	poolName, ok := pod.Annotations[constants.GpuPoolAnnotationKey]
+	if !ok {
+		return "", nil
+	}
 
 	for _, container := range pod.Spec.Containers {
 		containerName := container.Name
-
-		if !enabled {
-			continue
-		}
 
 		// Check if TF requirements exist for this container
 		tflopsReqKey := fmt.Sprintf(constants.TFLOPSRequestAnnotationFormat, containerName)
@@ -274,18 +273,4 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 
 	patches = append(patches, strategicpatches...)
 	return patches, nil
-}
-
-func tfIsEnabled(poolState config.GpuPoolState, pod *corev1.Pod) (enabled bool, poolNmae string) {
-	pools := poolState.PoolNames()
-	for _, poolName := range pools {
-		for k, v := range pod.Annotations {
-			enableKey := fmt.Sprintf(constants.EnableAnnotationFormat, poolName)
-			if k == enableKey {
-				enabled = v == "true"
-				return enabled, poolName
-			}
-		}
-	}
-	return false, ""
 }

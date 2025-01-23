@@ -12,7 +12,6 @@ import (
 )
 
 type GpuPoolState interface {
-	PoolNames() []string
 	Get(poolName string) *tfv1.GPUPoolSpec
 	Set(poolName string, gps *tfv1.GPUPoolSpec)
 	Delete(poolName string)
@@ -28,17 +27,6 @@ func NewGpuPoolStateImpl() *GpuPoolStateImpl {
 	return &GpuPoolStateImpl{
 		gpuPoolMap: make(map[string]*tfv1.GPUPoolSpec),
 	}
-}
-
-func (g *GpuPoolStateImpl) PoolNames() []string {
-	g.lock.RLock()
-	defer g.lock.RUnlock()
-
-	keys := make([]string, 0, len(g.gpuPoolMap))
-	for k := range g.gpuPoolMap {
-		keys = append(keys, k)
-	}
-	return keys
 }
 
 func (g *GpuPoolStateImpl) Get(poolName string) *tfv1.GPUPoolSpec {
@@ -125,10 +113,6 @@ func NewMockGpuPoolState() *MockGpuPoolState {
 	g.Set("mock", &MockGpuPoolSpec)
 
 	return &MockGpuPoolState{g: g}
-}
-
-func (m *MockGpuPoolState) PoolNames() []string {
-	return m.g.PoolNames()
 }
 
 func (m *MockGpuPoolState) Get(poolName string) *tfv1.GPUPoolSpec {

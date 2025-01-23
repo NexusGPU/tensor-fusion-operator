@@ -11,9 +11,7 @@ const (
 	Finalizer       = Domain + "/" + FinalizerSuffix
 
 	// Annotation key constants
-	// enable-<pool_name>
-	EnableAnnotationFormat = Domain + "/enable-%s"
-
+	GpuPoolAnnotationKey = Domain + "/gpupool"
 	// %s -> container_name
 	TFLOPSRequestAnnotationFormat = Domain + "/tflops-request-%s"
 	VRAMRequestAnnotationFormat   = Domain + "/vram-request-%s"

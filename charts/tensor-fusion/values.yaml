@@ -20,7 +20,7 @@ serviceAccount:
   annotations: {}
 
 hypervisor:
-  greptimedbEendpoint: greptimedb-standalone.greptimedb.svc.cluster.local:4001
+  greptimedbEndpoint: greptimedb-standalone.greptimedb.svc.cluster.local:4001
   image:
     repository: tensorfusion/tensor-fusion-hypervisor
     # Overrides the image tag whose default is the chart appVersion.
@@ -51,7 +51,7 @@ controller:
   tolerations: []
   affinity: {}
   
-  greptimedbEendpoint: http://greptimedb-standalone.greptimedb.svc.cluster.local:4000/v1/prometheus/write?db=public
+  greptimedbEndpoint: http://greptimedb-standalone.greptimedb.svc.cluster.local:4000/v1/prometheus/write?db=public
   admissionWebhooks:
     failurePolicy: Fail
     secretName: tensor-fusion-webhook-secret
