@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -44,8 +45,13 @@ func (wg *WorkerGenerator) GenerateWorkerPod(
 	connection *tfv1.TensorFusionConnection,
 	namespacedName types.NamespacedName,
 	port int,
-) *corev1.Pod {
-	spec := wg.WorkerConfig.PodTemplate.Object.(*corev1.PodTemplate).Template.Spec.DeepCopy()
+) (*corev1.Pod, error) {
+	podTmpl := &corev1.PodTemplate{}
+	err := json.Unmarshal(wg.WorkerConfig.PodTemplate.Raw, podTmpl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal pod template: %w", err)
+	}
+	spec := podTmpl.Template.Spec
 	if spec.NodeSelector == nil {
 		spec.NodeSelector = make(map[string]string)
 	}
@@ -64,6 +70,6 @@ func (wg *WorkerGenerator) GenerateWorkerPod(
 			Name:      namespacedName.Name,
 			Namespace: namespacedName.Namespace,
 		},
-		Spec: *spec,
-	}
+		Spec: spec,
+	}, nil
 }

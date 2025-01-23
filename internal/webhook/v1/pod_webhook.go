@@ -192,7 +192,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 	// Convert the current pod to JSON
 	currentBytes, err := json.Marshal(pod)
 	if err != nil {
-		return nil, fmt.Errorf("marshal current pod: %v", err)
+		return nil, fmt.Errorf("marshal current pod: %w", err)
 	}
 
 	// Patch to Container
@@ -203,19 +203,19 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 				// patch from config
 				containerJSON, err := json.Marshal(container)
 				if err != nil {
-					return nil, fmt.Errorf("marshal container: %v", err)
+					return nil, fmt.Errorf("marshal container: %w", err)
 				}
 				patchJSON, err := json.Marshal(clientConfig.PatchToContainer)
 				if err != nil {
-					return nil, fmt.Errorf("marshal patchToContainer: %v", err)
+					return nil, fmt.Errorf("marshal patchToContainer: %w", err)
 				}
 
 				patchedJSON, err := strategicpatch.StrategicMergePatch(containerJSON, patchJSON, corev1.Container{})
 				if err != nil {
-					return nil, fmt.Errorf("apply strategic merge patch to container: %v", err)
+					return nil, fmt.Errorf("apply strategic merge patch to container: %w", err)
 				}
 				if err := json.Unmarshal(patchedJSON, container); err != nil {
-					return nil, fmt.Errorf("unmarshal patched container: %v", err)
+					return nil, fmt.Errorf("unmarshal patched container: %w", err)
 				}
 
 				// add connection env
@@ -240,35 +240,35 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 
 	containerPatchedJSON, err := json.Marshal(pod)
 	if err != nil {
-		return nil, fmt.Errorf("marshal current pod: %v", err)
+		return nil, fmt.Errorf("marshal current pod: %w", err)
 	}
 	patches, err := jsonpatch.CreatePatch(currentBytes, containerPatchedJSON)
 	if err != nil {
-		return nil, fmt.Errorf("patch to container: %v", err)
+		return nil, fmt.Errorf("patch to container: %w", err)
 	}
 
 	// Convert the strategic merge patch to JSON
 	patchBytes, err := json.Marshal(clientConfig.PatchToPod)
 
 	if err != nil {
-		return nil, fmt.Errorf("marshal patch: %v", err)
+		return nil, fmt.Errorf("marshal patch: %w", err)
 	}
 
 	// Apply the strategic merge patch
 	resultBytes, err := strategicpatch.StrategicMergePatch(currentBytes, patchBytes, corev1.Pod{})
 	if err != nil {
-		return nil, fmt.Errorf("apply strategic merge patch: %v", err)
+		return nil, fmt.Errorf("apply strategic merge patch: %w", err)
 	}
 
 	// Generate JSON patch operations by comparing original and patched pod
 	strategicpatches, err := jsonpatch.CreatePatch(currentBytes, resultBytes)
 	if err != nil {
-		return nil, fmt.Errorf("create json patch: %v", err)
+		return nil, fmt.Errorf("create json patch: %w", err)
 	}
 
 	// Unmarshal the result back into the pod
 	if err := json.Unmarshal(resultBytes, pod); err != nil {
-		return nil, fmt.Errorf("unmarshal patched pod: %v", err)
+		return nil, fmt.Errorf("unmarshal patched pod: %w", err)
 	}
 
 	patches = append(patches, strategicpatches...)

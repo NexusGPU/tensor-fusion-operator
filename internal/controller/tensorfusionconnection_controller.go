@@ -173,7 +173,10 @@ func (r *TensorFusionConnectionReconciler) tryStartWorker(
 		if errors.IsNotFound(err) {
 			// Pod doesn't exist, create a new one
 			port := workerGenerator.AllocPort()
-			pod = workerGenerator.GenerateWorkerPod(gpu, connection, namespacedName, port)
+			pod, err = workerGenerator.GenerateWorkerPod(gpu, connection, namespacedName, port)
+			if err != nil {
+				return nil, fmt.Errorf("generate worker pod %w", err)
+			}
 			if err := ctrl.SetControllerReference(connection, pod, r.Scheme); err != nil {
 				return nil, fmt.Errorf("set owner reference %w", err)
 			}

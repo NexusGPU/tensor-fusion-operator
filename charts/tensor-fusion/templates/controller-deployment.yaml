@@ -45,8 +45,6 @@ spec:
             - name: cert
               readOnly: true
               mountPath: /tmp/k8s-webhook-server/serving-certs
-            - name: config
-              mountPath: /etc/tensor-fusion
         - name: vector
           image: docker.io/timberio/vector:nightly-2025-01-07-debian
           env:
@@ -74,10 +72,6 @@ spec:
                 path: tls.crt
               - key: key
                 path: tls.key
-        - name: config
-          configMap:
-            name: {{ include "tensor-fusion.fullname" . }}-config
-            defaultMode: 420
         - name: vector-config
           configMap:
             name: {{ include "tensor-fusion.fullname" . }}-vector-config
