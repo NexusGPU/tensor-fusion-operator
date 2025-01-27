@@ -40,6 +40,10 @@ type GPUPoolReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/finalizers,verbs=update
+
+// 1. Start or select GPU nodes, create GPUNode CR
+// 2. Initialize the resource aggregation job of this Pool if not started
+// 3. Deploy hypervisor and preload images of different components, maintain component status
 func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	pool := &tfv1.GPUPool{}
 	if err := r.Get(ctx, req.NamespacedName, pool); err != nil {
