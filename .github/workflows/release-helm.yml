@@ -27,11 +27,11 @@ jobs:
 
     - name: Helm Index
       uses: alpine/helm@v3
-      working-directory: gh-pages
       with:
         command: repo index . --url https://helm.tensor-fusion.ai/
 
     - name: Commit and Push
+      working-directory: gh-pages
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
