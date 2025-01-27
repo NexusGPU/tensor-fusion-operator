@@ -42,7 +42,8 @@ data:
 
       prepare_controller_metrics:
         type: remap
-        inputs: controller_metrics
+        inputs: 
+          - controller_metrics
         source: |
           .namespace = "tf"
 
