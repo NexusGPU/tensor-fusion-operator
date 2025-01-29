@@ -45,6 +45,19 @@ spec:
             - name: cert
               readOnly: true
               mountPath: /tmp/k8s-webhook-server/serving-certs
+        {{- if .Values.agentId }}
+        - name: cluster-agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default "latest" }}"
+          env:
+            - name: CLOUD_ENDPOINT
+              value: "{{ .Values.agent.cloudEndpoint }}"
+            - name: AGENT_ID
+              value: "{{ .Values.agent.agentId }}"
+            - name: ENROLL_TOKEN
+              value: "{{ .Values.agent.enrollToken }}"
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+        {{- end }}
         - name: vector
           image: docker.io/timberio/vector:nightly-2025-01-07-debian
           env:

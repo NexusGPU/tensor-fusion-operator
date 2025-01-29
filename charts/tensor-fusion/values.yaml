@@ -57,3 +57,21 @@ controller:
     secretName: tensor-fusion-webhook-secret
     patch:
       image: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.5.0
+
+
+agent:
+  enrollToken: "token-from-cloud"
+  agentId: 'org-from-cloud:env'
+  cloudEndpoint: "wss://api.tensor-fusion.ai/_ws"
+  
+  image:
+    repository: tensorfusion/tensor-fusion-agent
+    tag: "latest"
+  
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
