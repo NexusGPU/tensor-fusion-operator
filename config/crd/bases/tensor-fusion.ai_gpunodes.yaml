@@ -160,7 +160,7 @@ spec:
                     type: string
                   ip:
                     type: string
-                  kernalVersion:
+                  kernelVersion:
                     type: string
                   operatingSystem:
                     type: string
