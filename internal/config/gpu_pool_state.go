@@ -16,6 +16,7 @@ type GpuPoolState interface {
 	Set(poolName string, gps *tfv1.GPUPoolSpec)
 	Delete(poolName string)
 	Subscribe(poolName string)
+	GetMatchedPoolName(nodeName map[string]string) string
 }
 
 type GpuPoolStateImpl struct {
@@ -52,6 +53,35 @@ func (g *GpuPoolStateImpl) Delete(poolName string) {
 
 func (g *GpuPoolStateImpl) Subscribe(poolName string) {
 	// TODO: impl this
+}
+
+func (g *GpuPoolStateImpl) GetMatchedPoolName(nodeLabels map[string]string) string {
+	for k, v := range g.gpuPoolMap {
+		if v.NodeManagerConfig.NodeSelector != nil {
+			for _, selector := range v.NodeManagerConfig.NodeSelector {
+				if selector.MatchAny != nil {
+					for key, value := range selector.MatchAny {
+						if nodeLabels[key] == value {
+							return k
+						}
+					}
+				}
+				if selector.MatchAll != nil {
+					match := true
+					for key, value := range selector.MatchAll {
+						if nodeLabels[key] != value {
+							match = false
+							break
+						}
+					}
+					if match {
+						return k
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 type MockGpuPoolState struct {
@@ -129,4 +159,8 @@ func (m *MockGpuPoolState) Delete(poolName string) {
 
 func (m *MockGpuPoolState) Subscribe(poolName string) {
 	m.g.Subscribe(poolName)
+}
+
+func (m *MockGpuPoolState) GetMatchedPoolName(nodeLabels map[string]string) string {
+	return m.g.GetMatchedPoolName(nodeLabels)
 }

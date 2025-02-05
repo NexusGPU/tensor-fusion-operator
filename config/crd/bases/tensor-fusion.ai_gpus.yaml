@@ -36,6 +36,13 @@ spec:
             type: string
           metadata:
             type: object
+          spec:
+            properties:
+              gpuModel:
+                type: string
+            required:
+            - gpuModel
+            type: object
           status:
             description: GPUStatus defines the observed state of GPU.
             properties:
@@ -75,16 +82,22 @@ spec:
                 - tflops
                 - vram
                 type: object
+              message:
+                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
                 type: object
+              phase:
+                type: string
               uuid:
                 type: string
             required:
             - available
             - capacity
+            - message
             - nodeSelector
+            - phase
             - uuid
             type: object
         type: object

@@ -15,6 +15,7 @@
         "healthz",
         "karpenter",
         "kubebuilder",
+        "Kubelet",
         "kustomization",
         "metav",
         "metricsserver",

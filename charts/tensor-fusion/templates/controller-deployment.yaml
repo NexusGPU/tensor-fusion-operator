@@ -41,6 +41,12 @@ spec:
             {{- toYaml .Values.controller.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.controller.resources | nindent 12 }}
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
           volumeMounts:
             - name: cert
               readOnly: true

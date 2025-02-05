@@ -22,10 +22,19 @@ import (
 
 // GPUStatus defines the observed state of GPU.
 type GPUStatus struct {
+	Phase     string   `json:"phase"`
+	Capacity  Resource `json:"capacity"`
+	Available Resource `json:"available"`
+
+	// TODO, this should be in spec not status
 	UUID         string            `json:"uuid"`
 	NodeSelector map[string]string `json:"nodeSelector"`
-	Capacity     Resource          `json:"capacity"`
-	Available    Resource          `json:"available"`
+
+	Message string `json:"message"`
+}
+
+type GPUSpec struct {
+	GPUModel string `json:"gpuModel"`
 }
 
 // +kubebuilder:object:root=true
@@ -36,6 +45,7 @@ type GPU struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	Spec   GPUSpec   `json:"spec,omitempty"`
 	Status GPUStatus `json:"status,omitempty"`
 }
 

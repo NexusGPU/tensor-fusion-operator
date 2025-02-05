@@ -18,18 +18,31 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // GPUNodeReconciler reconciles a GPUNode object
 type GPUNodeReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme       *runtime.Scheme
+	GpuPoolState config.GpuPoolState
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes,verbs=get;list;watch;create;update;patch;delete
@@ -37,9 +50,23 @@ type GPUNodeReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes/finalizers,verbs=update
 
 func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	log.Info("Reconciling GPUNode", "name", req.NamespacedName.Name)
+	defer func() {
+		log.Info("Finished reconciling GPUNode", "name", req.NamespacedName.Name)
+	}()
+
+	node := &tfv1.GPUNode{}
+	if err := r.Get(ctx, req.NamespacedName, node); err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	if err := r.reconcileHypervisorPod(ctx, node); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -50,4 +77,52 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tfv1.GPUNode{}).
 		Named("gpunode").
 		Complete(r)
+}
+
+func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode) error {
+	poolName := node.Annotations[constants.PoolIdentifierAnnotationKey]
+	namespace := constants.NamespaceDefaultVal
+	if os.Getenv(constants.NamespaceEnv) != "" {
+		namespace = os.Getenv(constants.NamespaceEnv)
+	}
+	hypervisorPodName := fmt.Sprintf("%s-%s-hypervisor", poolName, node.Name)
+	hypervisorConfig := r.GpuPoolState.Get(poolName).ComponentConfig.Hypervisor
+
+	hypervisorPod := &corev1.Pod{}
+	err := r.Get(ctx, types.NamespacedName{Name: hypervisorPodName, Namespace: namespace}, hypervisorPod)
+
+	if errors.IsNotFound(err) {
+		podTmpl := &corev1.PodTemplate{}
+		err := json.Unmarshal(hypervisorConfig.PodTemplate.Raw, podTmpl)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal pod template: %w", err)
+		}
+		spec := podTmpl.Template.Spec
+		if spec.NodeSelector == nil {
+			spec.NodeSelector = make(map[string]string)
+		}
+		spec.NodeSelector["kubernetes.io/hostname"] = node.Name
+
+		newPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      hypervisorPodName,
+				Namespace: namespace,
+				Labels: map[string]string{
+					constants.PoolIdentifierAnnotationKey: poolName,
+				},
+			},
+			Spec: spec,
+		}
+
+		controllerutil.SetControllerReference(node, newPod, scheme.Scheme)
+
+		err = r.Create(ctx, newPod)
+		if err != nil {
+			return fmt.Errorf("failed to create hypervisorPod: %v", err)
+		}
+		return nil
+	}
+	// TODO: handle update and new generation case, new Pool config case etc.
+
+	return nil
 }

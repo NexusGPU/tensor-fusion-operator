@@ -55,10 +55,10 @@ type Oversubscription struct {
 }
 
 type NodeManagerConfig struct {
-	NodeProvisioner             NodeProvisioner         `json:"nodeProvisioner,omitempty"`
-	NodeSelector                NodeSelector            `json:"nodeSelector,omitempty"`
-	NodeCompaction              NodeCompaction          `json:"nodeCompaction,omitempty"`
-	NodePoolRollingUpdatePolicy NodeRollingUpdatePolicy `json:"nodePoolRollingUpdatePolicy,omitempty"`
+	NodeProvisioner             *NodeProvisioner         `json:"nodeProvisioner,omitempty"`
+	NodeSelector                NodeSelector             `json:"nodeSelector,omitempty"`
+	NodeCompaction              *NodeCompaction          `json:"nodeCompaction,omitempty"`
+	NodePoolRollingUpdatePolicy *NodeRollingUpdatePolicy `json:"nodePoolRollingUpdatePolicy,omitempty"`
 }
 
 // NodeProvisioner or NodeSelector, they are exclusive.
@@ -193,8 +193,7 @@ type ComponentConfig struct {
 }
 
 type HypervisorConfig struct {
-	Image                       string               `json:"image,omitempty"`
-	HypervisorDaemonSetTemplate runtime.RawExtension `json:"hypervisorDaemonSetTemplate,omitempty"` // Mixin extra spec.
+	PodTemplate runtime.RawExtension `json:"podTemplate,omitempty"` // Mixin extra spec.
 }
 
 type WorkerConfig struct {

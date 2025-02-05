@@ -167,6 +167,9 @@ spec:
                   osImage:
                     type: string
                 type: object
+              observedGeneration:
+                format: int64
+                type: integer
               phase:
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.

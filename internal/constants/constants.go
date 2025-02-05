@@ -10,6 +10,10 @@ const (
 	FinalizerSuffix = "finalizer"
 	Finalizer       = Domain + "/" + FinalizerSuffix
 
+	PoolIdentifierAnnotationKey = Domain + "/pool"
+	TensorFusionEnabledLabelKey = Domain + "/enabled"
+	InitialGPUNodeSelector      = "nvidia.com/gpu.present=true"
+
 	// Annotation key constants
 	GpuPoolAnnotationKey = Domain + "/gpupool"
 	// %s -> container_name
@@ -24,5 +28,25 @@ const (
 	ConnectionNameEnv      = "TENSOR_FUSION_CONNECTION_NAME"
 	ConnectionNamespaceEnv = "TENSOR_FUSION_CONNECTION_NAMESPACE"
 
-	WorkerPortEnv = "TENSOR_FUSION_WORKER_PORT"
+	WorkerPortEnv       = "TENSOR_FUSION_WORKER_PORT"
+	NamespaceEnv        = "OPERATOR_NAMESPACE"
+	NamespaceDefaultVal = "tensor-fusion"
+)
+
+const (
+	ConditionStatusTypeReady           = "Ready"
+	ConditionStatusTypeGPUScheduled    = "GPUScheduled"
+	ConditionStatusTypeConnectionReady = "ConnectionReady"
+	ConditionStatusTypeNodeProvisioned = "NodeProvisioned"
+	ConditionStatusTypePoolReady       = "PoolReady"
+)
+
+const (
+	PhaseUnknown    = "Unknown"
+	PhasePending    = "Pending"
+	PhaseRunning    = "Running"
+	PhaseScheduling = "Scheduling"
+	PhaseSucceeded  = "Succeeded"
+	PhaseMigrating  = "Migrating"
+	PhaseFailed     = "Failed"
 )

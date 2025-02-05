@@ -5,33 +5,12 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - tensor-fusion.ai
   resources:
   - gpunodeclasses
   - gpunodes
   - gpus
   - schedulingconfigtemplates
-  - tensorfusionclusters
-  - tensorfusionconnections
   verbs:
   - create
   - delete
@@ -47,8 +26,6 @@ rules:
   - gpunodes/finalizers
   - gpus/finalizers
   - schedulingconfigtemplates/finalizers
-  - tensorfusionclusters/finalizers
-  - tensorfusionconnections/finalizers
   verbs:
   - update
 - apiGroups:
@@ -58,8 +35,6 @@ rules:
   - gpunodes/status
   - gpus/status
   - schedulingconfigtemplates/status
-  - tensorfusionclusters/status
-  - tensorfusionconnections/status
   verbs:
   - get
   - patch

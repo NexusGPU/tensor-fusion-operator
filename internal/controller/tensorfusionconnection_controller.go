@@ -32,6 +32,7 @@ import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	scheduler "github.com/NexusGPU/tensor-fusion-operator/internal/scheduler"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/worker"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -52,11 +53,13 @@ var (
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionconnections,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionconnections/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionconnections/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
 func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
+
+	log.Info("Reconciling TensorFusionConnection", "name", req.NamespacedName.Name)
+	defer func() {
+		log.Info("Finished reconciling TensorFusionConnection", "name", req.NamespacedName.Name)
+	}()
 
 	// Get the TensorFusionConnection object
 	connection := &tfv1.TensorFusionConnection{}
@@ -69,32 +72,12 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		return ctrl.Result{}, err
 	}
 
-	// Check if the connection is being deleted
-	if !connection.DeletionTimestamp.IsZero() {
-		// The object is being deleted
-		if containsString(connection.Finalizers, tensorFusionConnectionFinalizer) {
-			// Our finalizer is present, so let's handle our external dependency
-			if err := r.handleDeletion(ctx, connection); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			// Remove our finalizer from the list and update it
-			connection.Finalizers = removeString(connection.Finalizers, tensorFusionConnectionFinalizer)
-			if err := r.Update(ctx, connection); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-		// Our finalizer has finished, so the reconciler can do nothing
-		return ctrl.Result{}, nil
+	deleted, err := utils.HandleFinalizer(ctx, connection, r.Client, r.handleDeletion)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
-
-	// Add finalizer if it's not present
-	if !containsString(connection.Finalizers, tensorFusionConnectionFinalizer) {
-		connection.Finalizers = append(connection.Finalizers, tensorFusionConnectionFinalizer)
-		if err := r.Update(ctx, connection); err != nil {
-			return ctrl.Result{}, err
-		}
-		// Return here as the update will trigger another reconciliation
+	if deleted {
+		// Object is being deleted, no need to proceed scheduling and other actions
 		return ctrl.Result{}, nil
 	}
 
@@ -105,7 +88,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		var err error
 		gpu, err = r.Scheduler.Schedule(connection.Spec.Resources.Requests)
 		if err != nil {
-			log.Info(err.Error())
+			log.Error(err, "Failed to schedule gpu instance")
 			connection.Status.Phase = tfv1.TensorFusionConnectionPending
 		} else if gpu != nil {
 			connection.Status.Phase = tfv1.TensorFusionConnectionStarting
@@ -117,6 +100,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
+	// check schedule result
 	if gpu == nil && connection.Status.GPU != "" {
 		gpu = &tfv1.GPU{}
 		if err := r.Get(ctx, client.ObjectKey{Name: connection.Status.GPU}, gpu); err != nil {
@@ -125,6 +109,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}
 
+	// Start worker Pod
 	if connection.Status.Phase != tfv1.TensorFusionConnectionPending && gpu != nil {
 		gpuPoolState := r.GpuPoolState.Get(connection.Spec.PoolName)
 		if gpuPoolState == nil {
@@ -148,7 +133,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		// TODO: Handle PodFailure
 	}
 
-	if err := r.mustUpdateStatus(ctx, connection, gpu); err != nil {
+	if err := r.mustUpdateTFConnectionStatus(ctx, connection, gpu); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -210,10 +195,10 @@ func (r *TensorFusionConnectionReconciler) handleDeletion(ctx context.Context, c
 		return err
 	}
 
-	return r.mustUpdateStatus(ctx, connection, gpu)
+	return r.mustUpdateTFConnectionStatus(ctx, connection, gpu)
 }
 
-func (r *TensorFusionConnectionReconciler) mustUpdateStatus(ctx context.Context, connection *tfv1.TensorFusionConnection, gpu *tfv1.GPU) error {
+func (r *TensorFusionConnectionReconciler) mustUpdateTFConnectionStatus(ctx context.Context, connection *tfv1.TensorFusionConnection, gpu *tfv1.GPU) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		// Get the latest version of the connection
 		latestConnection := &tfv1.TensorFusionConnection{}

@@ -63,6 +63,8 @@ type GPUNodeStatus struct {
 	TotalGPUs             int32    `json:"totalGPUs,omitempty"`
 	ManagedGPUs           int32    `json:"managedGPUs,omitempty"`
 	ManagedGPUResourceIDs []string `json:"managedGPUResourceIDs,omitempty"`
+
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 type GPUNodeInfo struct {

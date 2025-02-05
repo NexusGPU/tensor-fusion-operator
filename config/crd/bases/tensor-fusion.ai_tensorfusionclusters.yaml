@@ -258,11 +258,9 @@ spec:
                               type: object
                             hypervisor:
                               properties:
-                                hypervisorDaemonSetTemplate:
+                                podTemplate:
                                   type: object
                                   x-kubernetes-preserve-unknown-fields: true
-                                image:
-                                  type: string
                               type: object
                             worker:
                               properties:
