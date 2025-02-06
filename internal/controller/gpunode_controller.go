@@ -31,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -123,7 +122,7 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 			Spec: spec,
 		}
 
-		e := controllerutil.SetControllerReference(node, newPod, scheme.Scheme)
+		e := controllerutil.SetControllerReference(node, newPod, r.Scheme)
 		if e != nil {
 			return fmt.Errorf("failed to set controller reference: %w", e)
 		}

@@ -90,7 +90,7 @@ type NodeManagerConfig struct {
 	NodeProvisioner *NodeProvisioner `json:"nodeProvisioner,omitempty"`
 
 	// +optional
-	NodeSelector []NodeSelectorItem `json:"nodeSelector,omitempty"`
+	NodeSelector *NodeSelectorItem `json:"nodeSelector,omitempty"`
 
 	// +optional
 	NodeCompaction *NodeCompaction `json:"nodeCompaction,omitempty"`
@@ -203,10 +203,9 @@ type AlertConfig struct {
 
 // Define different QoS and their price.
 type QosConfig struct {
-	Definitions   []QosDefinition `json:"definitions,omitempty"`
-	DefaultQoS    string          `json:"defaultQoS,omitempty"`
-	BillingPeriod string          `json:"billingPeriod,omitempty"` // "second" or "minute", default to "second"
-	Pricing       []QosPricing    `json:"pricing,omitempty"`
+	Definitions []QosDefinition `json:"definitions,omitempty"`
+	DefaultQoS  string          `json:"defaultQoS,omitempty"`
+	Pricing     []QosPricing    `json:"pricing,omitempty"`
 }
 
 type QosDefinition struct {
@@ -237,9 +236,25 @@ type GPUOrCPUResourceUnit struct {
 }
 
 type QosPricing struct {
-	Qos                string          `json:"qos,omitempty"`
-	Requests           GPUResourceUnit `json:"requests,omitempty"`
-	LimitsOverRequests GPUResourceUnit `json:"limitsOverRequests,omitempty"`
+	Qos string `json:"qos,omitempty"`
+
+	Requests GPUResourcePricingUnit `json:"requests,omitempty"`
+
+	// Default requests and limitsOverRequests are same, indicates normal on-demand serverless GPU usage, in hands-on lab low QoS case, limitsOverRequests should be cheaper, for example Low QoS, ratio should be 0.5
+	// +kubebuilder:default="1"
+	LimitsOverRequestsChargingRatio string `json:"limitsOverRequests,omitempty"`
+}
+
+// The default pricing based on second level pricing from https://modal.com/pricing
+// with Tensor/CUDA Core : HBM = 2:1
+type GPUResourcePricingUnit struct {
+	// price is per hour, billing period is any time unit
+
+	// +kubebuilder:default="$0.0069228"
+	PerFP16TFlopsPerHour string `json:"perFP16TFlopsPerHour,omitempty"`
+
+	// +kubebuilder:default="$0.01548"
+	PerGBOfVRAMPerHour string `json:"perGBOfVRAMPerHour,omitempty"`
 }
 
 // Customize system components for seamless onboarding.

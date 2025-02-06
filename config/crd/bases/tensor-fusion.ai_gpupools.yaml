@@ -320,18 +320,16 @@ spec:
                         type: string
                     type: object
                   nodeSelector:
-                    items:
-                      properties:
-                        matchAll:
-                          additionalProperties:
-                            type: string
-                          type: object
-                        matchAny:
-                          additionalProperties:
-                            type: string
-                          type: object
-                      type: object
-                    type: array
+                    properties:
+                      matchAll:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      matchAny:
+                        additionalProperties:
+                          type: string
+                        type: object
+                    type: object
                 type: object
               observabilityConfig:
                 properties:
@@ -350,8 +348,6 @@ spec:
               qosConfig:
                 description: Define different QoS and their price.
                 properties:
-                  billingPeriod:
-                    type: string
                   defaultQoS:
                     type: string
                   definitions:
@@ -369,42 +365,25 @@ spec:
                     items:
                       properties:
                         limitsOverRequests:
-                          properties:
-                            tflops:
-                              anyOf:
-                              - type: integer
-                              - type: string
-                              description: Tera floating point operations per second
-                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                              x-kubernetes-int-or-string: true
-                            vram:
-                              anyOf:
-                              - type: integer
-                              - type: string
-                              description: VRAM is short for Video memory, namely
-                                GPU RAM
-                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                              x-kubernetes-int-or-string: true
-                          type: object
+                          default: "1"
+                          description: Default requests and limitsOverRequests are
+                            same, indicates normal on-demand serverless GPU usage,
+                            in hands-on lab low QoS case, limitsOverRequests should
+                            be cheaper, for example Low QoS, ratio should be 0.5
+                          type: string
                         qos:
                           type: string
                         requests:
+                          description: |-
+                            The default pricing based on second level pricing from https://modal.com/pricing
+                            with Tensor/CUDA Core : HBM = 2:1
                           properties:
-                            tflops:
-                              anyOf:
-                              - type: integer
-                              - type: string
-                              description: Tera floating point operations per second
-                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                              x-kubernetes-int-or-string: true
-                            vram:
-                              anyOf:
-                              - type: integer
-                              - type: string
-                              description: VRAM is short for Video memory, namely
-                                GPU RAM
-                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                              x-kubernetes-int-or-string: true
+                            perFP16TFlopsPerHour:
+                              default: $0.0069228
+                              type: string
+                            perGBOfVRAMPerHour:
+                              default: $0.01548
+                              type: string
                           type: object
                       type: object
                     type: array

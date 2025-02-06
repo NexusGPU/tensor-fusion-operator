@@ -58,25 +58,24 @@ func (g *GpuPoolStateImpl) Subscribe(poolName string) {
 func (g *GpuPoolStateImpl) GetMatchedPoolName(nodeLabels map[string]string) string {
 	for k, v := range g.gpuPoolMap {
 		if v.NodeManagerConfig != nil && v.NodeManagerConfig.NodeSelector != nil {
-			for _, selector := range v.NodeManagerConfig.NodeSelector {
-				if selector.MatchAny != nil {
-					for key, value := range selector.MatchAny {
-						if nodeLabels[key] == value {
-							return k
-						}
-					}
-				}
-				if selector.MatchAll != nil {
-					match := true
-					for key, value := range selector.MatchAll {
-						if nodeLabels[key] != value {
-							match = false
-							break
-						}
-					}
-					if match {
+			selector := v.NodeManagerConfig.NodeSelector
+			if selector.MatchAny != nil {
+				for key, value := range selector.MatchAny {
+					if nodeLabels[key] == value {
 						return k
 					}
+				}
+			}
+			if selector.MatchAll != nil {
+				match := true
+				for key, value := range selector.MatchAll {
+					if nodeLabels[key] != value {
+						match = false
+						break
+					}
+				}
+				if match {
+					return k
 				}
 			}
 		}

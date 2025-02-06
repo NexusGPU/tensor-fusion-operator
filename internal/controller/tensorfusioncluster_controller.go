@@ -22,7 +22,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -220,7 +219,7 @@ func (r *TensorFusionClusterReconciler) mustReconcileGPUPool(ctx context.Context
 				},
 				Spec: poolSpec.SpecTemplate,
 			}
-			e := controllerutil.SetControllerReference(tfc, gpupool, scheme.Scheme)
+			e := controllerutil.SetControllerReference(tfc, gpupool, r.Scheme)
 			if e != nil {
 				errors = append(errors, fmt.Errorf("failed to set controller reference: %w", e))
 				continue
