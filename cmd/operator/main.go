@@ -155,6 +155,7 @@ func main() {
 
 	ctx := context.Background()
 	gpuPoolState := config.NewGpuPoolStateImpl()
+	gpuNodeState := config.NewGpuNodeStateImpl()
 	scheduleTemplateState := config.NewScheduleTemplateStateImpl()
 
 	scheduler := scheduler.NewNaiveScheduler()
@@ -194,18 +195,25 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionCluster")
 		os.Exit(1)
 	}
-	if err = (&controller.GPUPoolReconciler{
+
+	GPUPoolReconciler := &controller.GPUPoolReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		GpuPoolState: gpuPoolState,
-	}).SetupWithManager(mgr); err != nil {
+		GpuNodeState: gpuNodeState,
+	}
+	if err = GPUPoolReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUPool")
 		os.Exit(1)
 	}
+	// Start compaction tasks in case any Pool enabled bin-packing
+	GPUPoolReconciler.StartNodeCompaction(ctx)
+
 	if err = (&controller.GPUNodeReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		GpuPoolState: gpuPoolState,
+		GpuNodeState: gpuNodeState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUNode")
 		os.Exit(1)

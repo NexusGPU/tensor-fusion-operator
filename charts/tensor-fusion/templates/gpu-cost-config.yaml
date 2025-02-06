@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tensor-fusion.fullname" . }}-public-gpu-info
+  namespace: {{ include "tensor-fusion.namespace" . }}
+  labels:
+    {{- include "tensor-fusion.labels" . | nindent 4 }}
+data:
+  # TODO: should be auto generated based on some server side database
+  config.yaml: |
+    # Refer: 
+    #  - https://www.techpowerup.com/gpu-specs
+    #  - https://getdeploying.com/reference/cloud-gpu
+
+    # Field Definition:
+    # - 'model' is `GPUModel_BoardSlotType` to identify the GPU
+    # - 'costPerHour' is the average cost referring a few Cloud/Serverless GPU vendors
+    # - 'fp16TFlops' is the max FP16 TFlops of the GPU. For NVIDIA, it means none-sparsity performance and using Tensor Cores
+    
+    # note that this sheet only contains TFlops, no VRAM, since variant GPUs have the same TFlops but different VRAM, VRAM can be easily detected from NVML lib
+    # TODO: this should be dynamic after user inputs their cloud vendor and discounts info, for example Azure/AWS has much higher price than this sheet
+    
+    # Turing Architecture Series
+    - model: T4
+      vendor: NVIDIA
+      costPerHour: 0.53
+      fp16TFlops: 65
+
+    # Ampere Architecture Series
+    - model: A100_SXM4
+      vendor: NVIDIA
+      costPerHour: 1.89
+      fp16TFlops: 312
+    
+    - model: A100_PCIe
+      vendor: NVIDIA
+      costPerHour: 1.64
+      fp16TFlops: 312
+
+    - model: A10G
+      vendor: NVIDIA
+      costPerHour: 0.4
+      fp16TFlops: 125
+
+    - model: A40
+      vendor: NVIDIA
+      costPerHour: 0.44
+      fp16TFlops: 125
+    
+    - model: RTX3090
+      vendor: NVIDIA
+      costPerHour: 0.43
+      fp16TFlops: 143
+
+    # Ada Lovelace Architecture Series  
+    - model: L4
+      vendor: NVIDIA
+      costPerHour: 0.43
+      fp16TFlops: 121
+
+    - model: L40
+      vendor: NVIDIA
+      costPerHour: 0.86 # should be a bit cheaper than L40s
+      fp16TFlops: 362
+
+    - model: L40s
+      vendor: NVIDIA
+      costPerHour: 0.86
+      fp16TFlops: 362
+
+    - model: RTX4090
+      vendor: NVIDIA
+      costPerHour: 0.69
+      fp16TFlops: 330
+
+    # Hopper Architecture Series
+    - model: H100_SXM4
+      vendor: NVIDIA
+      costPerHour: 2.99
+      fp16TFlops: 989
+    
+    - model: H100_PCIe
+      vendor: NVIDIA
+      costPerHour: 2.39
+      fp16TFlops: 835
+   
+    # Blackwell Architecture Series
+    - model: B200_SXM4
+      vendor: NVIDIA
+      costPerHour: 10.99 # unknown price,on-request
+      fp16TFlops: 2250
+
+    - model: RTX5090
+      vendor: NVIDIA
+      costPerHour: 2.99
+      fp16TFlops: 838

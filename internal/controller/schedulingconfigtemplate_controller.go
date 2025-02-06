@@ -41,12 +41,9 @@ type SchedulingConfigTemplateReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=schedulingconfigtemplates/finalizers,verbs=update
 
 // When deleted, need check if any GPU pool is using this template, if so, add warning event and requeue
-// When updated, trigger the GPU pool status update for scheduling part
+// When updated, trigger the re-scheduling
 func (r *SchedulingConfigTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
-
 	return ctrl.Result{}, nil
 }
 

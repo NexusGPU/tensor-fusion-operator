@@ -28,3 +28,4 @@ go.work
 .DS_Store
 
 cmd/__debug*
+cmd/*/__debug*

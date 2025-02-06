@@ -7,8 +7,6 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
-  - gpunodeclasses
-  - gpunodes
   - gpus
   - schedulingconfigtemplates
   verbs:
@@ -22,8 +20,6 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
-  - gpunodeclasses/finalizers
-  - gpunodes/finalizers
   - gpus/finalizers
   - schedulingconfigtemplates/finalizers
   verbs:
@@ -31,8 +27,6 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
-  - gpunodeclasses/status
-  - gpunodes/status
   - gpus/status
   - schedulingconfigtemplates/status
   verbs:

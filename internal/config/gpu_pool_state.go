@@ -16,7 +16,7 @@ type GpuPoolState interface {
 	Set(poolName string, gps *tfv1.GPUPoolSpec)
 	Delete(poolName string)
 	Subscribe(poolName string)
-	GetMatchedPoolName(nodeName map[string]string) string
+	GetMatchedPoolName(nodeLabels map[string]string) string
 }
 
 type GpuPoolStateImpl struct {

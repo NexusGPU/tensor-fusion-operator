@@ -19,6 +19,7 @@ package v1
 import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -79,5 +80,32 @@ func (tfc *TensorFusionCluster) SetAsReady(conditions ...metav1.Condition) {
 
 	for _, condition := range conditions {
 		meta.SetStatusCondition(&tfc.Status.Conditions, condition)
+	}
+}
+
+func (tfc *TensorFusionCluster) RefreshStatus(ownedPools []GPUPool) {
+	tfc.Status.TotalPools = int32(len(tfc.Spec.GPUPools))
+
+	tfc.Status.ReadyGPUPools = make([]string, len(tfc.Spec.GPUPools))
+	tfc.Status.NotReadyGPUPools = make([]string, 0)
+	tfc.Status.TotalNodes = 0
+	tfc.Status.TotalGPUs = 0
+	tfc.Status.TotalTFlops = resource.Quantity{}
+	tfc.Status.TotalVRAM = resource.Quantity{}
+	tfc.Status.AvailableTFlops = resource.Quantity{}
+	tfc.Status.AvailableVRAM = resource.Quantity{}
+
+	for i, gpuPool := range ownedPools {
+		if gpuPool.Status.Phase != constants.PhaseRunning {
+			tfc.Status.NotReadyGPUPools = append(tfc.Status.NotReadyGPUPools, gpuPool.Name)
+		} else {
+			tfc.Status.ReadyGPUPools[i] = gpuPool.Name
+		}
+		tfc.Status.TotalNodes += gpuPool.Status.TotalNodes
+		tfc.Status.TotalGPUs += gpuPool.Status.TotalGPUs
+		tfc.Status.TotalTFlops.Add(gpuPool.Status.TotalTFlops)
+		tfc.Status.TotalVRAM.Add(gpuPool.Status.TotalVRAM)
+		tfc.Status.AvailableTFlops.Add(gpuPool.Status.AvailableTFlops)
+		tfc.Status.AvailableVRAM.Add(gpuPool.Status.AvailableVRAM)
 	}
 }

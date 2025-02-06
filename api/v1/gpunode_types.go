@@ -31,6 +31,9 @@ type GPUNodeSpec struct {
 	// +kubebuilder:default=AutoSelect
 	ManageMode GPUNodeManageMode `json:"manageMode,omitempty"`
 
+	// +optional
+	CostPerHour string `json:"costPerHour,omitempty"`
+
 	// if not all GPU cards should be used, specify the GPU card indices, default to empty,
 	// onboard all GPU cards to the pool
 	// +optional
@@ -66,11 +69,25 @@ type GPUNodeStatus struct {
 
 	LoadedModels []string `json:"loadedModels"`
 
-	TotalGPUs             int32    `json:"totalGPUs"`
-	ManagedGPUs           int32    `json:"managedGPUs"`
-	ManagedGPUResourceIDs []string `json:"managedGPUResourceIDs,omitempty"`
+	TotalGPUs           int32    `json:"totalGPUs"`
+	ManagedGPUs         int32    `json:"managedGPUs"`
+	ManagedGPUDeviceIDs []string `json:"managedGPUDeviceIDs,omitempty"`
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Allocation details is for node compaction, and calculate used apps
+	AllocationDetails []GPUNodeAllocationDetails `json:"allocationDetails"`
+}
+
+type GPUNodeAllocationDetails struct {
+	PodID        string `json:"podID,omitempty"`
+	PodName      string `json:"podName,omitempty"`
+	Namespace    string `json:"namespace"`
+	WorkloadName string `json:"workload,omitempty"`
+
+	Requests GPUResourceUnit `json:"requests"`
+	Limits   GPUResourceUnit `json:"limits"`
+	QoS      string          `json:"qos,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Migrating;Running;Succeeded;Failed;Unknown;Destroying

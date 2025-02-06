@@ -37,6 +37,7 @@ import (
 type GPUPoolReconciler struct {
 	client.Client
 	GpuPoolState config.GpuPoolState
+	GpuNodeState config.GpuNodeState
 	Scheme       *runtime.Scheme
 }
 
@@ -80,6 +81,22 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 
 	return ctrl.Result{}, nil
+}
+
+func (r *GPUPoolReconciler) StartNodeCompaction(ctx context.Context) error {
+	log := log.FromContext(ctx)
+	log.Info("Starting node compaction cron job")
+
+	// TODO: need to write a interval in go coroutine to check if node could be compacted like Karpenter, when it's ok to mark as destroying, change the status and trigger a reconcile
+	// if it's AutoSelect mode, stop all Pods on it, and let ClusterAutoscaler or Karpenter to delete the node
+	// if it's Provision mode, stop all Pods on it, and destroy the Node from cloud provider
+
+	// Strategy #1: check if any empty node can be deleted
+
+	// Strategy #2: check if whole Pool can be bin-packing into less nodes, check from low-priority to high-priority nodes one by one, if workloads could be moved to other nodes (using a simulated scheduler), evict it and mark cordoning, let scheduler to re-schedule
+
+	// Strategy #3: check if any node can be reduced to 1/2 size. for remaining nodes, check if allocated size < 1/2 * total size, if so, check if can buy smaller instance
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
