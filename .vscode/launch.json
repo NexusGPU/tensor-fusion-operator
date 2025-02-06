@@ -12,7 +12,7 @@
             "env": {
                 "ENABLE_WEBHOOKS": "false"
             },
-            "program": "${workspaceFolder}/cmd/main.go",
+            "program": "${workspaceFolder}/cmd/operator/main.go",
         },
         {
             "name": "Debug Dev Env Operator",
@@ -23,7 +23,7 @@
                 "KUBECONFIG": "~/.kube/config-tf-dev",
                 "ENABLE_WEBHOOKS": "false"
             },
-            "program": "${workspaceFolder}/cmd/main.go",
+            "program": "${workspaceFolder}/cmd/operator/main.go",
         }
     ]
 }

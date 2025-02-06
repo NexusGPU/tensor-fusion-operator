@@ -33,6 +33,7 @@ type GPUStatus struct {
 
 	// The host match selector to schedule worker pods
 	NodeSelector map[string]string `json:"nodeSelector"`
+	GPUModel     string            `json:"gpuModel"`
 
 	Message string `json:"message"`
 }
@@ -49,10 +50,6 @@ const (
 	TensorFusionGPUPhaseMigrating  TensorFusionGPUPhase = constants.PhaseMigrating
 )
 
-type GPUSpec struct {
-	GPUModel string `json:"gpuModel"`
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
@@ -68,7 +65,6 @@ type GPU struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   GPUSpec   `json:"spec,omitempty"`
 	Status GPUStatus `json:"status,omitempty"`
 }
 

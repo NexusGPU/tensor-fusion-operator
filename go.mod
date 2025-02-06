@@ -3,6 +3,7 @@ module github.com/NexusGPU/tensor-fusion-operator
 go 1.23.4
 
 require (
+	github.com/NVIDIA/go-nvml v0.12.4-1
 	github.com/gin-contrib/gzip v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/lithammer/shortuuid/v4 v4.2.0
@@ -17,6 +18,7 @@ require (
 	k8s.io/client-go v0.32.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.19.3
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require (
@@ -117,5 +119,4 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.1 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.5.0 // indirect
-	sigs.k8s.io/yaml v1.4.0 // indirect
 )
