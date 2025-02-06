@@ -29,18 +29,23 @@ type GPUNodeClassSpec struct {
 
 	OSImageSelectorTerms []NodeClassOSImageSelectorTerms `json:"osImageSelectorTerms,omitempty"`
 
+	// +optional
 	BlockDeviceMappings []NodeClassBlockDeviceMappings `json:"blockDeviceMappings,omitempty"` // Block device mappings for the instance
 
 	InstanceProfile string `json:"instanceProfile,omitempty"` // The instance profile to use
 
+	// +optional
 	MetadataOptions NodeClassMetadataOptions `json:"metadataOptions,omitempty"`
 
+	// +optional
 	SecurityGroupSelectorTerms []NodeClassItemIDSelectorTerms `json:"securityGroupSelectorTerms,omitempty"`
 
 	SubnetSelectorTerms []NodeClassItemIDSelectorTerms `json:"subnetSelectorTerms,omitempty"` // Terms to select subnets
 
+	// +optional
 	Tags map[string]string `json:"tags,omitempty"` // Tags associated with the resource
 
+	// +optional
 	UserData string `json:"userData,omitempty"` // User data script for the instance
 }
 

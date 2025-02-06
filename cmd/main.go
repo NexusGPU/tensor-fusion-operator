@@ -20,7 +20,9 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -125,6 +127,7 @@ func main() {
 		// this setup is not recommended for production.
 	}
 
+	normalizeKubeConfigEnv()
 	kc := ctrl.GetConfigOrDie()
 	mgr, err := ctrl.NewManager(kc, ctrl.Options{
 		Scheme:                 scheme,
@@ -152,13 +155,15 @@ func main() {
 
 	ctx := context.Background()
 	gpuPoolState := config.NewGpuPoolStateImpl()
+	scheduleTemplateState := config.NewScheduleTemplateStateImpl()
 
 	scheduler := scheduler.NewNaiveScheduler()
 	if err = (&controller.TensorFusionConnectionReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Scheduler:    scheduler,
-		GpuPoolState: gpuPoolState,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		Scheduler:             scheduler,
+		GpuPoolState:          gpuPoolState,
+		ScheduleTemplateState: scheduleTemplateState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionConnection")
 		os.Exit(1)
@@ -198,8 +203,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.GPUNodeReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		GpuPoolState: gpuPoolState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUNode")
 		os.Exit(1)
@@ -212,8 +218,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.SchedulingConfigTemplateReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		ScheduleTemplateState: scheduleTemplateState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SchedulingConfigTemplate")
 		os.Exit(1)
@@ -268,5 +275,18 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+// only for local development, won't set KUBECONFIG env var in none local environments
+func normalizeKubeConfigEnv() {
+	cfgPath := os.Getenv("KUBECONFIG")
+	if cfgPath != "" && strings.HasPrefix(cfgPath, "~") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		os.Setenv("KUBECONFIG", strings.Replace(cfgPath, "~", home, 1))
 	}
 }

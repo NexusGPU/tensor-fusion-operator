@@ -81,7 +81,7 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	}
 
 	// 1. Inject initContainer and env variables
-	patches, err := m.patchTFClient(pod, &gpuPoolSpec.ComponentConfig.Client, resources)
+	patches, err := m.patchTFClient(pod, gpuPoolSpec.ComponentConfig.Client, resources)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}

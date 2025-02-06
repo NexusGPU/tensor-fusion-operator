@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,10 +27,13 @@ import (
 
 // GPUNodeSpec defines the desired state of GPUNode.
 type GPUNodeSpec struct {
+
+	// +kubebuilder:default=AutoSelect
 	ManageMode GPUNodeManageMode `json:"manageMode,omitempty"`
 
 	// if not all GPU cards should be used, specify the GPU card indices, default to empty,
 	// onboard all GPU cards to the pool
+	// +optional
 	GPUCardIndices []int `json:"gpuCardIndices,omitempty"`
 }
 
@@ -44,15 +48,17 @@ const (
 
 // GPUNodeStatus defines the observed state of GPUNode.
 type GPUNodeStatus struct {
-	Phase TensorFusionClusterPhase `json:"phase,omitempty"`
+
+	// +kubebuilder:default=Pending
+	Phase TensorFusionGPUNodePhase `json:"phase"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
-	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
-	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
-	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
 	HypervisorStatus NodeHypervisorStatus `json:"hypervisorStatus,omitempty"`
 
@@ -60,12 +66,25 @@ type GPUNodeStatus struct {
 
 	LoadedModels []string `json:"loadedModels,omitempty"`
 
-	TotalGPUs             int32    `json:"totalGPUs,omitempty"`
-	ManagedGPUs           int32    `json:"managedGPUs,omitempty"`
+	TotalGPUs             int32    `json:"totalGPUs"`
+	ManagedGPUs           int32    `json:"managedGPUs"`
 	ManagedGPUResourceIDs []string `json:"managedGPUResourceIDs,omitempty"`
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=Pending;Migrating;Running;Succeeded;Failed;Unknown;Destroying
+type TensorFusionGPUNodePhase string
+
+const (
+	TensorFusionGPUNodePhasePending    TensorFusionGPUNodePhase = constants.PhasePending
+	TensorFusionGPUNodePhaseMigrating  TensorFusionGPUNodePhase = constants.PhaseMigrating
+	TensorFusionGPUNodePhaseRunning    TensorFusionGPUNodePhase = constants.PhaseRunning
+	TensorFusionGPUNodePhaseSucceeded  TensorFusionGPUNodePhase = constants.PhaseSucceeded
+	TensorFusionGPUNodePhaseFailed     TensorFusionGPUNodePhase = constants.PhaseFailed
+	TensorFusionGPUNodePhaseUnknown    TensorFusionGPUNodePhase = constants.PhaseUnknown
+	TensorFusionGPUNodePhaseDestroying TensorFusionGPUNodePhase = constants.PhaseDestroying
+)
 
 type GPUNodeInfo struct {
 	Hostname         string `json:"hostname,omitempty"`

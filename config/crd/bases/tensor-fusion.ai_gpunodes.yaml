@@ -47,6 +47,7 @@ spec:
                   type: integer
                 type: array
               manageMode:
+                default: AutoSelect
                 enum:
                 - Manual
                 - AutoSelect
@@ -171,14 +172,15 @@ spec:
                 format: int64
                 type: integer
               phase:
-                description: TensorFusionClusterPhase represents the phase of the
-                  TensorFusionCluster resource.
+                default: Pending
                 enum:
                 - Pending
+                - Migrating
                 - Running
-                - Updating
-                - Destroying
+                - Succeeded
+                - Failed
                 - Unknown
+                - Destroying
                 type: string
               totalGPUs:
                 format: int32
@@ -195,6 +197,14 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+            required:
+            - availableTFlops
+            - availableVRAM
+            - managedGPUs
+            - phase
+            - totalGPUs
+            - totalTFlops
+            - totalVRAM
             type: object
         type: object
     served: true

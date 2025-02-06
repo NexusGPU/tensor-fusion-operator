@@ -25,23 +25,32 @@ import (
 type SchedulingConfigTemplateSpec struct {
 
 	// place the client or worker to best matched nodes
-	Placement PlacementConfig `json:"placement,omitempty"`
+	Placement PlacementConfig `json:"placement"`
 
 	// scale the workload based on the usage and traffic
-	AutoScaling AutoScalingConfig `json:"autoScaling,omitempty"`
+	// +optional
+	AutoScaling *AutoScalingConfig `json:"autoScaling,omitempty"`
 
 	// avoid hot GPU devices and continuously balance the workload
 	// implemented by trigger a simulation scheduling and advise better GPU nodes for scheduler
-	ReBalancer ReBalancerConfig `json:"reBalancer,omitempty"`
+	// +optional
+	ReBalancer *ReBalancerConfig `json:"reBalancer,omitempty"`
 
 	// single GPU device multi-process queuing and fair scheduling with QoS constraint
-	Hypervisor HypervisorScheduling `json:"hypervisor,omitempty"`
+	// +optional
+	Hypervisor *HypervisorScheduling `json:"hypervisor,omitempty"`
 }
 
 type PlacementConfig struct {
-	Mode               PlacementMode `json:"mode,omitempty"`               // "compactFirst" | "lowLoadFirst"
-	AllowUsingLocalGPU *bool         `json:"allowUsingLocalGPU,omitempty"` // If false, workloads will not be scheduled directly to GPU nodes with 'localGPU: true'.
-	GPUFilters         []GPUFilter   `json:"gpuFilters,omitempty"`
+	// +kubebuilder:default=CompactFirst
+	Mode PlacementMode `json:"mode"`
+
+	// +kubebuilder:default=true
+	// +optional
+	AllowUsingLocalGPU *bool `json:"allowUsingLocalGPU,omitempty"` // If false, workloads will not be scheduled directly to GPU nodes with 'localGPU: true'.
+
+	// +optional
+	GPUFilters []GPUFilter `json:"gpuFilters,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=CompactFirst;LowLoadFirst
@@ -101,15 +110,18 @@ type AutoScalingConfig struct {
 // if AI prediction enabled, it helps to detect history pattern, and set more reasonable, explainable limit value
 // the final set limits should be max(finalPreferredLimits, last(predict_value * (1 + extraTFlopsBufferRatio)))
 type AutoSetLimits struct {
-	EvaluationPeriod       string `json:"evaluationPeriod,omitempty"`
+	EvaluationPeriod string `json:"evaluationPeriod,omitempty"`
+
 	ExtraTFlopsBufferRatio string `json:"extraTFlopsBufferRatio,omitempty"`
-	IgnoredDeltaRange      string `json:"ignoredDeltaRange,omitempty"`
-	ScaleUpStep            string `json:"scaleUpStep,omitempty"`
+
+	IgnoredDeltaRange string `json:"ignoredDeltaRange,omitempty"`
+
+	ScaleUpStep string `json:"scaleUpStep,omitempty"`
 
 	// the multiplier of requests, to avoid limit set too high, like 5.0
 	MaxRatioToRequests string `json:"maxRatioToRequests,omitempty"`
 
-	Prediction SmartSchedulerModelInput `json:"prediction,omitempty"`
+	Prediction *SmartSchedulerModelInput `json:"prediction,omitempty"`
 }
 
 // To handle burst traffic, scale up in short time (this feature requires GPU context migration & replication, not available yet)

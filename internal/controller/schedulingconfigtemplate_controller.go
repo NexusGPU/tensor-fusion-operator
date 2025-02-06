@@ -20,16 +20,20 @@ import (
 	"context"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // SchedulingConfigTemplateReconciler reconciles a SchedulingConfigTemplate object
 type SchedulingConfigTemplateReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme                *runtime.Scheme
+	ScheduleTemplateState config.ScheduleTemplateState
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=schedulingconfigtemplates,verbs=get;list;watch;create;update;patch;delete
@@ -51,5 +55,21 @@ func (r *SchedulingConfigTemplateReconciler) SetupWithManager(mgr ctrl.Manager) 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&tfv1.SchedulingConfigTemplate{}).
 		Named("schedulingconfigtemplate").
+		WithEventFilter(
+			predicate.Funcs{
+				CreateFunc: func(e event.CreateEvent) bool {
+					r.ScheduleTemplateState.Set(e.Object.(*tfv1.SchedulingConfigTemplate).Name, e.Object.(*tfv1.SchedulingConfigTemplate))
+					return true
+				},
+				UpdateFunc: func(e event.UpdateEvent) bool {
+					r.ScheduleTemplateState.Set(e.ObjectNew.(*tfv1.SchedulingConfigTemplate).Name, e.ObjectNew.(*tfv1.SchedulingConfigTemplate))
+					return true
+				},
+				DeleteFunc: func(e event.DeleteEvent) bool {
+					r.ScheduleTemplateState.Delete(e.Object.(*tfv1.SchedulingConfigTemplate).Name)
+					return true
+				},
+			},
+		).
 		Complete(r)
 }

@@ -50,7 +50,11 @@ var _ = Describe("SchedulingConfigTemplate Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: tfv1.SchedulingConfigTemplateSpec{
+						Placement: tfv1.PlacementConfig{
+							Mode: tfv1.PlacementModeCompactFirst,
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}

@@ -40,9 +40,10 @@ import (
 // TensorFusionConnectionReconciler reconciles a TensorFusionConnection object
 type TensorFusionConnectionReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Scheduler    scheduler.Scheduler
-	GpuPoolState config.GpuPoolState
+	Scheme                *runtime.Scheme
+	Scheduler             scheduler.Scheduler
+	GpuPoolState          config.GpuPoolState
+	ScheduleTemplateState config.ScheduleTemplateState
 }
 
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -111,7 +112,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		if gpuPoolState == nil {
 			return ctrl.Result{}, fmt.Errorf("gpu pool(%s) does not exist", connection.Spec.PoolName)
 		}
-		workerGenerator := &worker.WorkerGenerator{WorkerConfig: &gpuPoolState.ComponentConfig.Worker}
+		workerGenerator := &worker.WorkerGenerator{WorkerConfig: gpuPoolState.ComponentConfig.Worker}
 		// Start worker job
 		workerPod, err := r.tryStartWorker(ctx, workerGenerator, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
 		if err != nil {

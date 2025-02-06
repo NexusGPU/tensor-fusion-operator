@@ -87,8 +87,17 @@ spec:
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: The host match selector to schedule worker pods
                 type: object
               phase:
+                default: Pending
+                enum:
+                - Pending
+                - Provisioning
+                - Running
+                - Unknown
+                - Destroying
+                - Migrating
                 type: string
               uuid:
                 type: string

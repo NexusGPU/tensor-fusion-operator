@@ -167,6 +167,7 @@ spec:
                 description: place the client or worker to best matched nodes
                 properties:
                   allowUsingLocalGPU:
+                    default: true
                     type: boolean
                   gpuFilters:
                     items:
@@ -184,10 +185,13 @@ spec:
                       type: object
                     type: array
                   mode:
+                    default: CompactFirst
                     enum:
                     - CompactFirst
                     - LowLoadFirst
                     type: string
+                required:
+                - mode
                 type: object
               reBalancer:
                 description: |-
@@ -205,6 +209,8 @@ spec:
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                 type: object
+            required:
+            - placement
             type: object
           status:
             description: SchedulingConfigTemplateStatus defines the observed state

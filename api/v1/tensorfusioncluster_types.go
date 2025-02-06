@@ -25,64 +25,44 @@ import (
 
 // TensorFusionClusterSpec defines the desired state of TensorFusionCluster.
 type TensorFusionClusterSpec struct {
-	Enroll EnrollConfig `json:"enroll,omitempty"`
-
 	GPUPools []GPUPoolDefinition `json:"gpuPools,omitempty"`
 
 	// +optional
-	ComputingVendor ComputingVendorConfig `json:"computingVendor,omitempty"`
+	ComputingVendor *ComputingVendorConfig `json:"computingVendor,omitempty"`
 
 	// +optional
-	StorageVendor StorageVendorConfig `json:"storageVendor,omitempty"`
+	StorageVendor *StorageVendorConfig `json:"storageVendor,omitempty"`
 
 	// +optional
-	DataPipelines DataPipelinesConfig `json:"dataPipelines,omitempty"`
+	DataPipelines *DataPipelinesConfig `json:"dataPipelines,omitempty"`
 }
 
 // TensorFusionClusterStatus defines the observed state of TensorFusionCluster.
 type TensorFusionClusterStatus struct {
 
-	// +kubebuilder:default:=Pending
+	// +kubebuilder:default=Pending
 	Phase TensorFusionClusterPhase `json:"phase,omitempty"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	TotalPools int32 `json:"totalPools,omitempty"`
-	TotalNodes int32 `json:"totalNodes,omitempty"`
-	TotalGPUs  int32 `json:"totalGPUs,omitempty"`
+	TotalPools int32 `json:"totalPools"`
+	TotalNodes int32 `json:"totalNodes"`
+	TotalGPUs  int32 `json:"totalGPUs"`
 
-	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
-	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
-	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
-	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
-	ReadyGPUPools    []string `json:"readyGPUPools,omitempty"`
-	NotReadyGPUPools []string `json:"notReadyGPUPools,omitempty"`
+	// +optional
+	ReadyGPUPools []string `json:"readyGPUPools"`
 
-	AvailableLicenses  int32       `json:"availableLicenses,omitempty"`
-	TotalLicenses      int32       `json:"totalLicenses,omitempty"`
-	LicenseRenewalTime metav1.Time `json:"licenseRenewalTime,omitempty"`
+	// +optional
+	NotReadyGPUPools []string `json:"notReadyGPUPools"`
 
-	CloudConnectionStatus ClusterCloudConnectionStatus `json:"cloudConnectionStatus,omitempty"`
-	StorageStatus         ClusterStorageStatus         `json:"storageStatus,omitempty"`
-	ComputingVendorStatus ClusterComputingVendorStatus `json:"computingVendorStatus,omitempty"`
-
-	RetryCount int64 `json:"retryCount,omitempty"`
-}
-
-type ClusterCloudConnectionStatus struct {
-	ClusterID         string      `json:"clusterId,omitempty"`
-	ConnectionState   string      `json:"connectionState,omitempty"`
-	LastHeartbeatTime metav1.Time `json:"lastHeartbeatTime,omitempty"`
-}
-
-type ClusterStorageStatus struct {
-	ConnectionState string `json:"connectionState,omitempty"`
-}
-
-type ClusterComputingVendorStatus struct {
-	ConnectionState string `json:"connectionState,omitempty"`
+	// +kubebuilder:default=0
+	RetryCount int64 `json:"retryCount"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown
@@ -97,26 +77,11 @@ const (
 	TensorFusionClusterUnknown    = TensorFusionClusterPhase(constants.PhaseUnknown)
 )
 
-// Enroll to TensorFusion cloud with a enrollment key
-type EnrollConfig struct {
-	APIEndpoint string              `json:"apiEndpoint,omitempty"` // API endpoint for enrollment.
-	EnrollKey   EnrollmentKeyConfig `json:"enrollKey,omitempty"`
-}
-
-type EnrollmentKeyConfig struct {
-	Data      string        `json:"data,omitempty"` // Enrollment key data.
-	SecretRef NameNamespace `json:"secretRef,omitempty"`
-}
-
 // GPUPool defines how to create a GPU pool, could be URL or inline
 type GPUPoolDefinition struct {
 	Name string `json:"name,omitempty"` // Name of the GPU pool.
 
-	// +optional
-	Spec GPUPoolSpec `json:"spec,omitempty"`
-
-	// +optional
-	SpecTemplateURL string `json:"specTemplateUrl,omitempty"`
+	SpecTemplate GPUPoolSpec `json:"specTemplate"`
 }
 
 // ComputingVendorConfig defines the Cloud vendor connection such as AWS, GCP, Azure etc.

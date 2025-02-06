@@ -102,14 +102,17 @@ spec:
                   oversubscription:
                     properties:
                       tflopsOversellRatio:
+                        default: "5"
                         description: The multipler of TFlops to oversell, default
-                          to 1 for production, 20 for development
+                          to 5, indicates 5 times oversell
                         type: string
                       vramExpandToHostDisk:
+                        default: "70"
                         description: the percentage of Host Disk appending to GPU
                           VRAM, default to 70%
                         type: string
                       vramExpandToHostMem:
+                        default: "50"
                         description: the percentage of Host RAM appending to GPU VRAM,
                           default to 50%
                         type: string
@@ -157,10 +160,6 @@ spec:
                       patchToPod:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
-                    required:
-                    - operatorEndpoint
-                    - patchToContainer
-                    - patchToPod
                     type: object
                   hypervisor:
                     properties:
@@ -173,8 +172,6 @@ spec:
                       podTemplate:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
-                    required:
-                    - podTemplate
                     type: object
                 type: object
               nodeManagerConfig:
@@ -182,21 +179,23 @@ spec:
                   nodeCompaction:
                     properties:
                       period:
+                        default: 30m
                         type: string
                     type: object
                   nodePoolRollingUpdatePolicy:
                     properties:
                       autoUpdate:
-                        description: |-
-                          If set to false, updates will be pending in status, and user needs to manually approve updates.
-                          Updates will occur immediately or during the next maintenance window.
+                        default: true
                         type: boolean
                       batchInterval:
+                        default: 10m
                         type: string
                       batchPercentage:
-                        type: string
-                      duration:
-                        type: string
+                        default: 100
+                        format: int32
+                        maximum: 100
+                        minimum: 0
+                        type: integer
                       maintenanceWindow:
                         properties:
                           includes:
@@ -205,6 +204,9 @@ spec:
                               type: string
                             type: array
                         type: object
+                      maxDuration:
+                        default: 10m
+                        type: string
                     type: object
                   nodeProvisioner:
                     description: |-
@@ -282,7 +284,6 @@ spec:
                         type: string
                     type: object
                   nodeSelector:
-                    description: Use existing Kubernetes GPU nodes.
                     items:
                       properties:
                         matchAll:
@@ -502,6 +503,7 @@ spec:
                     description: place the client or worker to best matched nodes
                     properties:
                       allowUsingLocalGPU:
+                        default: true
                         type: boolean
                       gpuFilters:
                         items:
@@ -520,10 +522,13 @@ spec:
                           type: object
                         type: array
                       mode:
+                        default: CompactFirst
                         enum:
                         - CompactFirst
                         - LowLoadFirst
                         type: string
+                    required:
+                    - mode
                     type: object
                   reBalancer:
                     description: |-
@@ -541,6 +546,8 @@ spec:
                             x-kubernetes-preserve-unknown-fields: true
                         type: object
                     type: object
+                required:
+                - placement
                 type: object
               schedulingConfigTemplate:
                 type: string
@@ -650,8 +657,7 @@ spec:
                 format: int32
                 type: integer
               phase:
-                description: TensorFusionClusterPhase represents the phase of the
-                  TensorFusionCluster resource.
+                default: Pending
                 enum:
                 - Pending
                 - Running
@@ -696,6 +702,15 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+            required:
+            - availableTFlops
+            - availableVRAM
+            - componentStatus
+            - notReadyNodes
+            - phase
+            - provisioningStatus
+            - totalTFlops
+            - totalVRAM
             type: object
         type: object
     served: true

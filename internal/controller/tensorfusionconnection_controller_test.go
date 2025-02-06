@@ -81,7 +81,8 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 			scheduler.OnAdd(gpu)
 			Expect(k8sClient.Create(ctx, gpu)).To(Succeed())
 			gpu.Status = tfv1.GPUStatus{
-				UUID: "mock-gpu",
+				Phase: tfv1.TensorFusionGPUPhaseRunning,
+				UUID:  "mock-gpu",
 				NodeSelector: map[string]string{
 					"kubernetes.io/hostname": "mock-node",
 				},

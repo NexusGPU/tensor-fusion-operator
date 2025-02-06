@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,37 +28,68 @@ import (
 
 // GPUPoolSpec defines the desired state of GPUPool.
 type GPUPoolSpec struct {
-	CapacityConfig           CapacityConfig               `json:"capacityConfig,omitempty"`
-	NodeManagerConfig        NodeManagerConfig            `json:"nodeManagerConfig,omitempty"`
-	ObservabilityConfig      ObservabilityConfig          `json:"observabilityConfig,omitempty"`
-	QosConfig                QosConfig                    `json:"qosConfig,omitempty"`
-	ComponentConfig          ComponentConfig              `json:"componentConfig,omitempty"`
-	SchedulingConfig         SchedulingConfigTemplateSpec `json:"schedulingConfig,omitempty"`
-	SchedulingConfigTemplate string                       `json:"schedulingConfigTemplate,omitempty"`
+	CapacityConfig *CapacityConfig `json:"capacityConfig,omitempty"`
+
+	NodeManagerConfig *NodeManagerConfig `json:"nodeManagerConfig,omitempty"`
+
+	// +optional
+	ObservabilityConfig *ObservabilityConfig `json:"observabilityConfig,omitempty"`
+
+	// +optional
+	QosConfig *QosConfig `json:"qosConfig,omitempty"`
+
+	// +optional
+	ComponentConfig *ComponentConfig `json:"componentConfig,omitempty"`
+
+	// +optional
+	SchedulingConfig *SchedulingConfigTemplateSpec `json:"schedulingConfig,omitempty"`
+
+	// +optional
+	SchedulingConfigTemplate *string `json:"schedulingConfigTemplate,omitempty"`
 }
 
 type CapacityConfig struct {
-	MinResources     GPUOrCPUResourceUnit `json:"minResources,omitempty"`
-	MaxResources     GPUOrCPUResourceUnit `json:"maxResources,omitempty"`
-	WarmResources    GPUOrCPUResourceUnit `json:"warmResources,omitempty"`
-	Oversubscription Oversubscription     `json:"oversubscription,omitempty"`
+	// +optional
+	MinResources *GPUOrCPUResourceUnit `json:"minResources,omitempty"`
+
+	// +optional
+	MaxResources *GPUOrCPUResourceUnit `json:"maxResources,omitempty"`
+
+	// +optional
+	WarmResources *GPUOrCPUResourceUnit `json:"warmResources,omitempty"`
+
+	// +optional
+	Oversubscription *Oversubscription `json:"oversubscription,omitempty"`
 }
 
 type Oversubscription struct {
 	// the percentage of Host RAM appending to GPU VRAM, default to 50%
+	// +optional
+	// +kubebuilder:default="50"
 	VramExpandToHostMem string `json:"vramExpandToHostMem,omitempty"`
 
 	// the percentage of Host Disk appending to GPU VRAM, default to 70%
+	// +optional
+	// +kubebuilder:default="70"
 	VramExpandToHostDisk string `json:"vramExpandToHostDisk,omitempty"`
 
-	// The multipler of TFlops to oversell, default to 1 for production, 20 for development
+	// The multipler of TFlops to oversell, default to 5, indicates 5 times oversell
+	// +optional
+	// +kubebuilder:default="5"
 	TflopsOversellRatio string `json:"tflopsOversellRatio,omitempty"`
 }
 
 type NodeManagerConfig struct {
-	NodeProvisioner             *NodeProvisioner         `json:"nodeProvisioner,omitempty"`
-	NodeSelector                NodeSelector             `json:"nodeSelector,omitempty"`
-	NodeCompaction              *NodeCompaction          `json:"nodeCompaction,omitempty"`
+	// +optional
+	NodeProvisioner *NodeProvisioner `json:"nodeProvisioner,omitempty"`
+
+	// +optional
+	NodeSelector []NodeSelectorItem `json:"nodeSelector,omitempty"`
+
+	// +optional
+	NodeCompaction *NodeCompaction `json:"nodeCompaction,omitempty"`
+
+	// +optional
 	NodePoolRollingUpdatePolicy *NodeRollingUpdatePolicy `json:"nodePoolRollingUpdatePolicy,omitempty"`
 }
 
@@ -66,10 +98,11 @@ type NodeManagerConfig struct {
 type NodeProvisioner struct {
 	// Mode could be Karpenter or Native, for Karpenter mode, node provisioner will start dummy nodes to provision and warmup GPU nodes, do nothing for CPU nodes, for Native mode, provisioner will create or compact GPU & CPU nodes based on current pods
 	// +kubebuilder:default=Native
-	// +kubebuilder:validation:Enum=Native;Karpenter
 	Mode NodeProvisionerMode `json:"mode,omitempty"`
 
-	NodeClass       string        `json:"nodeClass,omitempty"`
+	NodeClass string `json:"nodeClass,omitempty"`
+
+	// +optional
 	GPURequirements []Requirement `json:"gpuRequirements,omitempty"`
 	// +optional
 	GPUTaints []Taint `json:"gpuTaints,omitempty"`
@@ -84,6 +117,7 @@ type NodeProvisioner struct {
 	CPULabels map[string]string `json:"cpuNodeLabels,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Native;Karpenter
 type NodeProvisionerMode string
 
 const (
@@ -103,26 +137,39 @@ type Taint struct {
 	Value  string `json:"value,omitempty"`
 }
 
-// Use existing Kubernetes GPU nodes.
-type NodeSelector []NodeSelectorItem
-
 type NodeSelectorItem struct {
+	// +optional
 	MatchAny map[string]string `json:"matchAny,omitempty"`
+
+	// +optional
 	MatchAll map[string]string `json:"matchAll,omitempty"`
 }
 
 type NodeCompaction struct {
+	// +kubebuilder:default="30m"
 	Period string `json:"period,omitempty"`
 }
-
 type NodeRollingUpdatePolicy struct {
 	// If set to false, updates will be pending in status, and user needs to manually approve updates.
 	// Updates will occur immediately or during the next maintenance window.
-	AutoUpdate      *bool  `json:"autoUpdate,omitempty"`
-	BatchPercentage string `json:"batchPercentage,omitempty"`
-	BatchInterval   string `json:"batchInterval,omitempty"`
-	Duration        string `json:"duration,omitempty"`
 
+	// +kubebuilder:default=true
+	// +optional
+	AutoUpdate *bool `json:"autoUpdate,omitempty"`
+
+	// +kubebuilder:default=100
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	BatchPercentage int32 `json:"batchPercentage,omitempty"`
+
+	// +kubebuilder:default="10m"
+	BatchInterval string `json:"batchInterval,omitempty"`
+
+	// +optional
+	// +kubebuilder:default="10m"
+	MaxDuration string `json:"maxDuration,omitempty"`
+
+	// +optional
 	MaintenanceWindow MaintenanceWindow `json:"maintenanceWindow,omitempty"`
 }
 
@@ -132,8 +179,11 @@ type MaintenanceWindow struct {
 }
 
 type ObservabilityConfig struct {
-	Monitor MonitorConfig `json:"monitor,omitempty"`
-	Alert   AlertConfig   `json:"alert,omitempty"`
+	// +optional
+	Monitor *MonitorConfig `json:"monitor,omitempty"`
+
+	// +optional
+	Alert *AlertConfig `json:"alert,omitempty"`
 }
 
 type MonitorConfig struct {
@@ -141,7 +191,8 @@ type MonitorConfig struct {
 }
 
 type AlertConfig struct {
-	Expression runtime.RawExtension `json:"expression,omitempty"`
+	// +optional
+	Expression *runtime.RawExtension `json:"expression,omitempty"`
 }
 
 // Define different QoS and their price.
@@ -187,54 +238,77 @@ type QosPricing struct {
 
 // Customize system components for seamless onboarding.
 type ComponentConfig struct {
-	Worker     WorkerConfig     `json:"worker,omitempty"`
-	Hypervisor HypervisorConfig `json:"hypervisor,omitempty"`
-	Client     ClientConfig     `json:"client,omitempty"`
+	// +optional
+	Worker *WorkerConfig `json:"worker,omitempty"`
+
+	// +optional
+	Hypervisor *HypervisorConfig `json:"hypervisor,omitempty"`
+
+	// +optional
+	Client *ClientConfig `json:"client,omitempty"`
 }
 
 type HypervisorConfig struct {
-	PodTemplate runtime.RawExtension `json:"podTemplate,omitempty"` // Mixin extra spec.
+	// +optional
+	PodTemplate *runtime.RawExtension `json:"podTemplate,omitempty"`
 }
 
 type WorkerConfig struct {
-	PodTemplate runtime.RawExtension `json:"podTemplate"`
+	// +optional
+	PodTemplate *runtime.RawExtension `json:"podTemplate,omitempty"`
 }
 
 type ClientConfig struct {
-	OperatorEndpoint string               `json:"operatorEndpoint"`
-	PatchToPod       runtime.RawExtension `json:"patchToPod"`
-	PatchToContainer runtime.RawExtension `json:"patchToContainer"`
+	OperatorEndpoint string `json:"operatorEndpoint,omitempty"`
+
+	// +optional
+	PatchToPod *runtime.RawExtension `json:"patchToPod,omitempty"`
+
+	// +optional
+	PatchToContainer *runtime.RawExtension `json:"patchToContainer,omitempty"`
 }
 
 // GPUPoolStatus defines the observed state of GPUPool.
 type GPUPoolStatus struct {
 	Cluster string `json:"cluster,omitempty"`
 
-	Phase TensorFusionClusterPhase `json:"phase,omitempty"`
+	// +kubebuilder:default=Pending
+	Phase TensorFusionPoolPhase `json:"phase"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	TotalNodes    int32 `json:"totalNodes,omitempty"`
 	TotalGPUs     int32 `json:"totalGPUs,omitempty"`
 	ReadyNodes    int32 `json:"readyNodes,omitempty"`
-	NotReadyNodes int32 `json:"notReadyNodes,omitempty"`
+	NotReadyNodes int32 `json:"notReadyNodes"`
 
-	TotalTFlops resource.Quantity `json:"totalTFlops,omitempty"`
-	TotalVRAM   resource.Quantity `json:"totalVRAM,omitempty"`
+	TotalTFlops resource.Quantity `json:"totalTFlops"`
+	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
-	AvailableTFlops resource.Quantity `json:"availableTFlops,omitempty"`
-	AvailableVRAM   resource.Quantity `json:"availableVRAM,omitempty"`
+	AvailableTFlops resource.Quantity `json:"availableTFlops"`
+	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
 	// If using provisioner, GPU nodes could be outside of the K8S cluster.
 	// The GPUNodes custom resource will be created and deleted automatically.
 	// ProvisioningStatus is to track the status of those outside GPU nodes.
-	ProvisioningStatus PoolProvisioningStatus `json:"provisioningStatus,omitempty"`
+	ProvisioningStatus PoolProvisioningStatus `json:"provisioningStatus"`
 
 	// when updating any component version or config, poolcontroller will perform rolling update.
 	// the status will be updated periodically, default to 5s, progress will be 0-100.
 	// when the progress is 100, the component version or config is fully updated.
-	ComponentStatus PoolComponentStatus `json:"componentStatus,omitempty"`
+	ComponentStatus PoolComponentStatus `json:"componentStatus"`
 }
+
+// +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown
+type TensorFusionPoolPhase string
+
+const (
+	TensorFusionPoolPhasePending    = TensorFusionPoolPhase(constants.PhasePending)
+	TensorFusionPoolPhaseRunning    = TensorFusionPoolPhase(constants.PhaseRunning)
+	TensorFusionPoolPhaseUpdating   = TensorFusionPoolPhase(constants.PhaseUpdating)
+	TensorFusionPoolPhaseUnknown    = TensorFusionPoolPhase(constants.PhaseUnknown)
+	TensorFusionPoolPhaseDestroying = TensorFusionPoolPhase(constants.PhaseDestroying)
+)
 
 type PoolProvisioningStatus struct {
 	InitializingNodes int32 `json:"initializingNodes,omitempty"`

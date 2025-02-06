@@ -218,7 +218,7 @@ func (r *TensorFusionClusterReconciler) mustReconcileGPUPool(ctx context.Context
 					Name:   key,
 					Labels: poolLabels,
 				},
-				Spec: poolSpec.Spec,
+				Spec: poolSpec.SpecTemplate,
 			}
 			e := controllerutil.SetControllerReference(tfc, gpupool, scheme.Scheme)
 			if e != nil {
@@ -233,8 +233,8 @@ func (r *TensorFusionClusterReconciler) mustReconcileGPUPool(ctx context.Context
 			}
 		} else {
 			// Update existing GPUPool if spec changed
-			if !equality.Semantic.DeepEqual(&existingPool.Spec, &poolSpec.Spec) {
-				existingPool.Spec = poolSpec.Spec
+			if !equality.Semantic.DeepEqual(&existingPool.Spec, &poolSpec.SpecTemplate) {
+				existingPool.Spec = poolSpec.SpecTemplate
 				err = r.Update(ctx, existingPool)
 				if err != nil {
 					errors = append(errors, fmt.Errorf("failed to update GPUPool %s: %w", key, err))

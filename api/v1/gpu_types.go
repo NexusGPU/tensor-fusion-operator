@@ -17,21 +17,37 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GPUStatus defines the observed state of GPU.
 type GPUStatus struct {
-	Phase     string   `json:"phase"`
+	// +kubebuilder:default=Pending
+	Phase TensorFusionGPUPhase `json:"phase"`
+
 	Capacity  Resource `json:"capacity"`
 	Available Resource `json:"available"`
 
-	// TODO, this should be in spec not status
-	UUID         string            `json:"uuid"`
+	UUID string `json:"uuid"`
+
+	// The host match selector to schedule worker pods
 	NodeSelector map[string]string `json:"nodeSelector"`
 
 	Message string `json:"message"`
 }
+
+// +kubebuilder:validation:Enum=Pending;Provisioning;Running;Unknown;Destroying;Migrating
+type TensorFusionGPUPhase string
+
+const (
+	TensorFusionGPUPhasePending    TensorFusionGPUPhase = constants.PhasePending
+	TensorFusionGPUPhaseUpdating   TensorFusionGPUPhase = constants.PhaseUpdating
+	TensorFusionGPUPhaseRunning    TensorFusionGPUPhase = constants.PhaseRunning
+	TensorFusionGPUPhaseUnknown    TensorFusionGPUPhase = constants.PhaseUnknown
+	TensorFusionGPUPhaseDestroying TensorFusionGPUPhase = constants.PhaseDestroying
+	TensorFusionGPUPhaseMigrating  TensorFusionGPUPhase = constants.PhaseMigrating
+)
 
 type GPUSpec struct {
 	GPUModel string `json:"gpuModel"`

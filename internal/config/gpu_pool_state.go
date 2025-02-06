@@ -57,7 +57,7 @@ func (g *GpuPoolStateImpl) Subscribe(poolName string) {
 
 func (g *GpuPoolStateImpl) GetMatchedPoolName(nodeLabels map[string]string) string {
 	for k, v := range g.gpuPoolMap {
-		if v.NodeManagerConfig.NodeSelector != nil {
+		if v.NodeManagerConfig != nil && v.NodeManagerConfig.NodeSelector != nil {
 			for _, selector := range v.NodeManagerConfig.NodeSelector {
 				if selector.MatchAny != nil {
 					for key, value := range selector.MatchAny {
@@ -89,9 +89,9 @@ type MockGpuPoolState struct {
 }
 
 var MockGpuPoolSpec = tfv1.GPUPoolSpec{
-	ComponentConfig: tfv1.ComponentConfig{
-		Worker: tfv1.WorkerConfig{
-			PodTemplate: runtime.RawExtension{
+	ComponentConfig: &tfv1.ComponentConfig{
+		Worker: &tfv1.WorkerConfig{
+			PodTemplate: &runtime.RawExtension{
 				Raw: lo.Must(json.Marshal(
 					corev1.PodTemplate{
 						Template: corev1.PodTemplateSpec{
@@ -110,9 +110,9 @@ var MockGpuPoolSpec = tfv1.GPUPoolSpec{
 				)),
 			},
 		},
-		Client: tfv1.ClientConfig{
+		Client: &tfv1.ClientConfig{
 			OperatorEndpoint: "http://localhost:8080",
-			PatchToPod: runtime.RawExtension{
+			PatchToPod: &runtime.RawExtension{
 				Raw: lo.Must(json.Marshal(map[string]any{
 					"spec": map[string]any{
 						"initContainers": []corev1.Container{
@@ -124,7 +124,7 @@ var MockGpuPoolSpec = tfv1.GPUPoolSpec{
 					},
 				})),
 			},
-			PatchToContainer: runtime.RawExtension{
+			PatchToContainer: &runtime.RawExtension{
 				Raw: lo.Must(json.Marshal(map[string]any{
 					"env": []corev1.EnvVar{
 						{
