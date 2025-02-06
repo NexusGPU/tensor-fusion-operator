@@ -67,7 +67,10 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			// generate tensor fusion GPU node and apply to cluster
 			gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
 			// set owner reference to cascade delete
-			controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
+			e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
+			if e != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
+			}
 			if err := r.Client.Create(ctx, gpuNode); err != nil {
 				return ctrl.Result{}, fmt.Errorf("create GPUNode(%s) : %w", gpuNode.Namespace+"/"+gpuNode.Name, err)
 			}

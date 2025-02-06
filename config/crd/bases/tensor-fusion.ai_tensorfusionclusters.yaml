@@ -769,19 +769,23 @@ spec:
                   type: string
                 type: array
               phase:
-                default: Initializing
+                default: Pending
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.
                 enum:
-                - Initializing
+                - Pending
                 - Running
                 - Updating
                 - Destroying
+                - Unknown
                 type: string
               readyGPUPools:
                 items:
                   type: string
                 type: array
+              retryCount:
+                format: int64
+                type: integer
               storageStatus:
                 properties:
                   connectionState:

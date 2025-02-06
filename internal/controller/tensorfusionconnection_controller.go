@@ -45,10 +45,6 @@ type TensorFusionConnectionReconciler struct {
 	GpuPoolState config.GpuPoolState
 }
 
-var (
-	tensorFusionConnectionFinalizer = constants.Finalizer
-)
-
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionconnections,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=tensorfusionconnections/status,verbs=get;update;patch

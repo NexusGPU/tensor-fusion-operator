@@ -62,6 +62,7 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	deleted, err := utils.HandleFinalizer(ctx, pool, r.Client, func(ctx context.Context, pool *tfv1.GPUPool) error {
 		r.GpuPoolState.Delete(pool.Name)
+		// TODO: stop all existing workers and hypervisors, stop time series flow aggregations
 		return nil
 	})
 	if err != nil {

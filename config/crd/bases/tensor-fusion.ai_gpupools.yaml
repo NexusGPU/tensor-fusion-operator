@@ -653,10 +653,11 @@ spec:
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.
                 enum:
-                - Initializing
+                - Pending
                 - Running
                 - Updating
                 - Destroying
+                - Unknown
                 type: string
               provisioningStatus:
                 description: |-

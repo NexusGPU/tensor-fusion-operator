@@ -81,12 +81,21 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode) error {
 	poolName := node.Annotations[constants.PoolIdentifierAnnotationKey]
+	if poolName == "" {
+		log.FromContext(ctx).Info("Orphan GPU node found, not belongs to any pool, skipping reconcile.", "node", node.Name)
+		return nil
+	}
+
 	namespace := constants.NamespaceDefaultVal
 	if os.Getenv(constants.NamespaceEnv) != "" {
 		namespace = os.Getenv(constants.NamespaceEnv)
 	}
 	hypervisorPodName := fmt.Sprintf("%s-%s-hypervisor", poolName, node.Name)
-	hypervisorConfig := r.GpuPoolState.Get(poolName).ComponentConfig.Hypervisor
+	pool := r.GpuPoolState.Get(poolName)
+	if pool == nil {
+		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod, pool: %s", poolName)
+	}
+	hypervisorConfig := pool.ComponentConfig.Hypervisor
 
 	hypervisorPod := &corev1.Pod{}
 	err := r.Get(ctx, types.NamespacedName{Name: hypervisorPodName, Namespace: namespace}, hypervisorPod)
@@ -114,7 +123,10 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 			Spec: spec,
 		}
 
-		controllerutil.SetControllerReference(node, newPod, scheme.Scheme)
+		e := controllerutil.SetControllerReference(node, newPod, scheme.Scheme)
+		if e != nil {
+			return fmt.Errorf("failed to set controller reference: %w", e)
+		}
 
 		err = r.Create(ctx, newPod)
 		if err != nil {

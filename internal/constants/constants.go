@@ -10,6 +10,8 @@ const (
 	FinalizerSuffix = "finalizer"
 	Finalizer       = Domain + "/" + FinalizerSuffix
 
+	LabelKeyOwner = Domain + "/managed-by"
+
 	PoolIdentifierAnnotationKey = Domain + "/pool"
 	TensorFusionEnabledLabelKey = Domain + "/enabled"
 	InitialGPUNodeSelector      = "nvidia.com/gpu.present=true"
@@ -39,14 +41,21 @@ const (
 	ConditionStatusTypeConnectionReady = "ConnectionReady"
 	ConditionStatusTypeNodeProvisioned = "NodeProvisioned"
 	ConditionStatusTypePoolReady       = "PoolReady"
+
+	ConditionStatusTypeGPUPool               = "GPUPoolReady"
+	ConditionStatusTypeTimeSeriesDatabase    = "TimeSeriesDatabaseReady"
+	ConditionStatusTypeCloudVendorConnection = "CloudVendorConnectionReady"
 )
 
 const (
 	PhaseUnknown    = "Unknown"
 	PhasePending    = "Pending"
-	PhaseRunning    = "Running"
+	PhaseUpdating   = "Updating"
 	PhaseScheduling = "Scheduling"
-	PhaseSucceeded  = "Succeeded"
 	PhaseMigrating  = "Migrating"
-	PhaseFailed     = "Failed"
+	PhaseDestroying = "Destroying"
+
+	PhaseRunning   = "Running"
+	PhaseSucceeded = "Succeeded"
+	PhaseFailed    = "Failed"
 )

@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +42,7 @@ type TensorFusionClusterSpec struct {
 // TensorFusionClusterStatus defines the observed state of TensorFusionCluster.
 type TensorFusionClusterStatus struct {
 
-	// +kubebuilder:default:=Initializing
+	// +kubebuilder:default:=Pending
 	Phase TensorFusionClusterPhase `json:"phase,omitempty"`
 
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -66,6 +67,8 @@ type TensorFusionClusterStatus struct {
 	CloudConnectionStatus ClusterCloudConnectionStatus `json:"cloudConnectionStatus,omitempty"`
 	StorageStatus         ClusterStorageStatus         `json:"storageStatus,omitempty"`
 	ComputingVendorStatus ClusterComputingVendorStatus `json:"computingVendorStatus,omitempty"`
+
+	RetryCount int64 `json:"retryCount,omitempty"`
 }
 
 type ClusterCloudConnectionStatus struct {
@@ -82,15 +85,16 @@ type ClusterComputingVendorStatus struct {
 	ConnectionState string `json:"connectionState,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=Initializing;Running;Updating;Destroying
+// +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown
 // TensorFusionClusterPhase represents the phase of the TensorFusionCluster resource.
 type TensorFusionClusterPhase string
 
 const (
-	TensorFusionClusterInitializing = TensorFusionClusterPhase("Initializing")
-	TensorFusionClusterRunning      = TensorFusionClusterPhase("Running")
-	TensorFusionClusterUpdating     = TensorFusionClusterPhase("Updating")
-	TensorFusionClusterDestroying   = TensorFusionClusterPhase("Destroying")
+	TensorFusionClusterPending    = TensorFusionClusterPhase(constants.PhasePending)
+	TensorFusionClusterRunning    = TensorFusionClusterPhase(constants.PhaseRunning)
+	TensorFusionClusterUpdating   = TensorFusionClusterPhase(constants.PhaseUpdating)
+	TensorFusionClusterDestroying = TensorFusionClusterPhase(constants.PhaseDestroying)
+	TensorFusionClusterUnknown    = TensorFusionClusterPhase(constants.PhaseUnknown)
 )
 
 // Enroll to TensorFusion cloud with a enrollment key

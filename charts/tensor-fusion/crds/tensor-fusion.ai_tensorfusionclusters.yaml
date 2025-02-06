@@ -648,7 +648,7 @@ spec:
                   type: string
                 type: array
               phase:
-                default: Initializing
+                default: Pending
                 description: TensorFusionClusterPhase represents the phase of the
                   TensorFusionCluster resource.
                 type: string

@@ -3,6 +3,8 @@ package utils
 import (
 	"context"
 	"errors"
+	"math/rand/v2"
+	"time"
 
 	constants "github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 
@@ -16,6 +18,8 @@ var ErrNextLoop = errors.New("stop this loop and return the associated Result ob
 
 // ErrTerminateLoop is not a real error. It forces the current reconciliation loop to stop
 var ErrTerminateLoop = errors.New("stop this loop and do not requeue")
+
+var MaxReconcileDelay = 10 * time.Minute
 
 func HandleFinalizer[T client.Object](ctx context.Context, obj T, r client.Client, deleteHook func(context.Context, T) error) (bool, error) {
 	// Check if object is being deleted
@@ -44,4 +48,15 @@ func HandleFinalizer[T client.Object](ctx context.Context, obj T, r client.Clien
 		}
 	}
 	return deleted, nil
+}
+
+func CalculateExponentialBackoffWithJitter(retryCount int64) time.Duration {
+	baseDelay := 5 * time.Second
+	backoffFactor := time.Duration(1<<(retryCount+1)) * baseDelay
+	jitter := time.Duration(rand.Float64()*0.2*float64(backoffFactor)) * time.Second
+	totalDelay := backoffFactor + jitter
+	if totalDelay > MaxReconcileDelay {
+		totalDelay = MaxReconcileDelay
+	}
+	return totalDelay
 }
