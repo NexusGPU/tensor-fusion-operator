@@ -287,6 +287,6 @@ func normalizeKubeConfigEnv() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		os.Setenv("KUBECONFIG", strings.Replace(cfgPath, "~", home, 1))
+		_ = os.Setenv("KUBECONFIG", strings.Replace(cfgPath, "~", home, 1))
 	}
 }
