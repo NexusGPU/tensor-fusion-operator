@@ -14,7 +14,14 @@ spec:
     singular: schedulingconfigtemplate
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.placement.mode
+      name: Mode
+      type: string
+    - jsonPath: .spec.placement.allowLocalGPU
+      name: Allow Local GPU
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: SchedulingConfigTemplate is the Schema for the schedulingconfigtemplates

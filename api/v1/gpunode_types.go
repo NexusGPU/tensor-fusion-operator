@@ -64,7 +64,7 @@ type GPUNodeStatus struct {
 
 	NodeInfo GPUNodeInfo `json:"nodeInfo,omitempty"`
 
-	LoadedModels []string `json:"loadedModels,omitempty"`
+	LoadedModels []string `json:"loadedModels"`
 
 	TotalGPUs             int32    `json:"totalGPUs"`
 	ManagedGPUs           int32    `json:"managedGPUs"`

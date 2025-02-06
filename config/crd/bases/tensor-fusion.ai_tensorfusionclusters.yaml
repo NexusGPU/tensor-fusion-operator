@@ -14,7 +14,32 @@ spec:
     singular: tensorfusioncluster
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.totalPools
+      name: Total Pools
+      type: string
+    - jsonPath: .status.totalNodes
+      name: Total Nodes
+      type: string
+    - jsonPath: .status.totalGPUs
+      name: Total GPU
+      type: string
+    - jsonPath: .status.totalTFlops
+      name: Total Tflops
+      type: string
+    - jsonPath: .status.totalVRAM
+      name: Total VRAM
+      type: string
+    - jsonPath: .status.availableTFlops
+      name: Available Tflops
+      type: string
+    - jsonPath: .status.availableVRAM
+      name: Available VRAM
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: TensorFusionCluster is the Schema for the tensorfusionclusters
@@ -178,20 +203,29 @@ spec:
                             oversubscription:
                               properties:
                                 tflopsOversellRatio:
-                                  default: "5"
+                                  default: 500
                                   description: The multipler of TFlops to oversell,
-                                    default to 5, indicates 5 times oversell
-                                  type: string
+                                    default to 500%, indicates 5 times oversell
+                                  format: int32
+                                  maximum: 100000
+                                  minimum: 100
+                                  type: integer
                                 vramExpandToHostDisk:
-                                  default: "70"
+                                  default: 70
                                   description: the percentage of Host Disk appending
                                     to GPU VRAM, default to 70%
-                                  type: string
+                                  format: int32
+                                  maximum: 100
+                                  minimum: 0
+                                  type: integer
                                 vramExpandToHostMem:
-                                  default: "50"
+                                  default: 50
                                   description: the percentage of Host RAM appending
                                     to GPU VRAM, default to 50%
-                                  type: string
+                                  format: int32
+                                  maximum: 100
+                                  minimum: 0
+                                  type: integer
                               type: object
                             warmResources:
                               properties:

@@ -153,7 +153,15 @@ type DataPipelineResultRemoteWriteConfig struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Total Pools",type="string",JSONPath=".status.totalPools"
+// +kubebuilder:printcolumn:name="Total Nodes",type="string",JSONPath=".status.totalNodes"
+// +kubebuilder:printcolumn:name="Total GPU",type="string",JSONPath=".status.totalGPUs"
 
+// +kubebuilder:printcolumn:name="Total Tflops",type="string",JSONPath=".status.totalTFlops"
+// +kubebuilder:printcolumn:name="Total VRAM",type="string",JSONPath=".status.totalVRAM"
+// +kubebuilder:printcolumn:name="Available Tflops",type="string",JSONPath=".status.availableTFlops"
+// +kubebuilder:printcolumn:name="Available VRAM",type="string",JSONPath=".status.availableVRAM"
 // TensorFusionCluster is the Schema for the tensorfusionclusters API.
 type TensorFusionCluster struct {
 	metav1.TypeMeta   `json:",inline"`

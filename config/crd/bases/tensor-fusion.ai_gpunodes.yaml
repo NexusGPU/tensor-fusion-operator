@@ -200,6 +200,7 @@ spec:
             required:
             - availableTFlops
             - availableVRAM
+            - loadedModels
             - managedGPUs
             - phase
             - totalGPUs

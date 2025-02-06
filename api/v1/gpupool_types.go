@@ -65,18 +65,24 @@ type CapacityConfig struct {
 type Oversubscription struct {
 	// the percentage of Host RAM appending to GPU VRAM, default to 50%
 	// +optional
-	// +kubebuilder:default="50"
-	VramExpandToHostMem string `json:"vramExpandToHostMem,omitempty"`
+	// +kubebuilder:default=50
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	VramExpandToHostMem int32 `json:"vramExpandToHostMem,omitempty"`
 
 	// the percentage of Host Disk appending to GPU VRAM, default to 70%
 	// +optional
-	// +kubebuilder:default="70"
-	VramExpandToHostDisk string `json:"vramExpandToHostDisk,omitempty"`
+	// +kubebuilder:default=70
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	VramExpandToHostDisk int32 `json:"vramExpandToHostDisk,omitempty"`
 
-	// The multipler of TFlops to oversell, default to 5, indicates 5 times oversell
+	// The multipler of TFlops to oversell, default to 500%, indicates 5 times oversell
 	// +optional
-	// +kubebuilder:default="5"
-	TflopsOversellRatio string `json:"tflopsOversellRatio,omitempty"`
+	// +kubebuilder:default=500
+	// +kubebuilder:validation:Minimum=100
+	// +kubebuilder:validation:Maximum=100000
+	TflopsOversellRatio int32 `json:"tflopsOversellRatio,omitempty"`
 }
 
 type NodeManagerConfig struct {
@@ -330,11 +336,20 @@ type PoolComponentStatus struct {
 	ClientUpdateProgress int32  `json:"clientUpdateProgress,omitempty"`
 }
 
+// GPUPool is the Schema for the gpupools API.
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 
-// GPUPool is the Schema for the gpupools API.
+// +kubebuilder:printcolumn:name="TFlops Oversubscription",type="string",JSONPath=".spec.capacityConfig.oversubscription.tflopsOversellRatio"
+// +kubebuilder:printcolumn:name="Mode",type="string",JSONPath=".status.mode"
+// +kubebuilder:printcolumn:name="Default Scheduling Strategy",type="string",JSONPath=".spec.schedulingConfigTemplate"
+// +kubebuilder:printcolumn:name="Total Nodes",type="string",JSONPath=".status.totalNodes"
+// +kubebuilder:printcolumn:name="Total GPU",type="string",JSONPath=".status.totalGPUs"
+// +kubebuilder:printcolumn:name="Total Tflops",type="string",JSONPath=".status.totalTFlops"
+// +kubebuilder:printcolumn:name="Total VRAM",type="string",JSONPath=".status.totalVRAM"
+// +kubebuilder:printcolumn:name="Available Tflops",type="string",JSONPath=".status.availableTFlops"
+// +kubebuilder:printcolumn:name="Available VRAM",type="string",JSONPath=".status.availableVRAM"
 type GPUPool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
