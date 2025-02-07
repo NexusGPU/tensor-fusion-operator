@@ -18,6 +18,7 @@ package v1
 
 import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,7 +91,7 @@ type NodeManagerConfig struct {
 	NodeProvisioner *NodeProvisioner `json:"nodeProvisioner,omitempty"`
 
 	// +optional
-	NodeSelector *NodeSelectorItem `json:"nodeSelector,omitempty"`
+	NodeSelector *corev1.NodeSelector `json:"nodeSelector,omitempty"`
 
 	// +optional
 	NodeCompaction *NodeCompaction `json:"nodeCompaction,omitempty"`
@@ -141,14 +142,6 @@ type Taint struct {
 	Effect string `json:"effect,omitempty"`
 	Key    string `json:"key,omitempty"`
 	Value  string `json:"value,omitempty"`
-}
-
-type NodeSelectorItem struct {
-	// +optional
-	MatchAny map[string]string `json:"matchAny,omitempty"`
-
-	// +optional
-	MatchAll map[string]string `json:"matchAll,omitempty"`
 }
 
 type NodeCompaction struct {
@@ -266,7 +259,14 @@ type ComponentConfig struct {
 	Hypervisor *HypervisorConfig `json:"hypervisor,omitempty"`
 
 	// +optional
+	NodeDiscovery *NodeDiscoveryConfig `json:"nodeDiscovery,omitempty"`
+
+	// +optional
 	Client *ClientConfig `json:"client,omitempty"`
+}
+type NodeDiscoveryConfig struct {
+	// +optional
+	PodTemplate *runtime.RawExtension `json:"podTemplate,omitempty"`
 }
 
 type HypervisorConfig struct {

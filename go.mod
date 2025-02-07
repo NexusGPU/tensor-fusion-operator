@@ -13,9 +13,10 @@ require (
 	github.com/samber/lo v1.47.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	gomodules.xyz/jsonpatch/v2 v2.4.0
-	k8s.io/api v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
+	k8s.io/api v0.32.1
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
+	k8s.io/component-helpers v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/controller-runtime v0.19.3
 	sigs.k8s.io/yaml v1.4.0

@@ -367,7 +367,9 @@ func (r *TensorFusionClusterReconciler) mustUpdateTFClusterStatus(ctx context.Co
 		}
 		return nil
 	})
-	r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())
+	if err != nil {
+		r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())
+	}
 	return err
 }
 

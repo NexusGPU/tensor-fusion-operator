@@ -114,7 +114,7 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 		}
 		workerGenerator := &worker.WorkerGenerator{WorkerConfig: gpuPoolState.ComponentConfig.Worker}
 		// Start worker job
-		workerPod, err := r.tryStartWorker(ctx, workerGenerator, gpu, connection, types.NamespacedName{Name: connection.Name, Namespace: connection.Namespace})
+		workerPod, err := r.tryStartWorker(ctx, workerGenerator, gpu, connection, client.ObjectKeyFromObject(connection))
 		if err != nil {
 			log.Error(err, "Failed to start worker pod")
 			return ctrl.Result{}, err

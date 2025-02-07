@@ -2,12 +2,14 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
 	"k8s.io/utils/ptr"
 )
 
@@ -16,7 +18,7 @@ type GpuPoolState interface {
 	Set(poolName string, gps *tfv1.GPUPoolSpec)
 	Delete(poolName string)
 	Subscribe(poolName string)
-	GetMatchedPoolName(nodeLabels map[string]string) string
+	GetMatchedPoolName(node *corev1.Node) (string, error)
 }
 
 type GpuPoolStateImpl struct {
@@ -55,32 +57,18 @@ func (g *GpuPoolStateImpl) Subscribe(poolName string) {
 	// TODO: impl this
 }
 
-func (g *GpuPoolStateImpl) GetMatchedPoolName(nodeLabels map[string]string) string {
+func (g *GpuPoolStateImpl) GetMatchedPoolName(node *corev1.Node) (string, error) {
 	for k, v := range g.gpuPoolMap {
-		if v.NodeManagerConfig != nil && v.NodeManagerConfig.NodeSelector != nil {
-			selector := v.NodeManagerConfig.NodeSelector
-			if selector.MatchAny != nil {
-				for key, value := range selector.MatchAny {
-					if nodeLabels[key] == value {
-						return k
-					}
-				}
-			}
-			if selector.MatchAll != nil {
-				match := true
-				for key, value := range selector.MatchAll {
-					if nodeLabels[key] != value {
-						match = false
-						break
-					}
-				}
-				if match {
-					return k
-				}
-			}
+		matches, err := schedulingcorev1.MatchNodeSelectorTerms(node, v.NodeManagerConfig.NodeSelector)
+		if err != nil {
+			return "", err
+		}
+
+		if matches {
+			return k, nil
 		}
 	}
-	return ""
+	return "", fmt.Errorf("no matched GPU pool")
 }
 
 type MockGpuPoolState struct {
@@ -89,6 +77,26 @@ type MockGpuPoolState struct {
 
 var MockGpuPoolSpec = tfv1.GPUPoolSpec{
 	ComponentConfig: &tfv1.ComponentConfig{
+		NodeDiscovery: &tfv1.NodeDiscoveryConfig{
+			PodTemplate: &runtime.RawExtension{
+				Raw: lo.Must(json.Marshal(
+					corev1.PodTemplate{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								TerminationGracePeriodSeconds: ptr.To[int64](0),
+								Containers: []corev1.Container{
+									{
+										Name:    "tensorfusion-node-discovery",
+										Image:   "busybox:stable-glibc",
+										Command: []string{"sleep", "infinity"},
+									},
+								},
+							},
+						},
+					},
+				)),
+			},
+		},
 		Worker: &tfv1.WorkerConfig{
 			PodTemplate: &runtime.RawExtension{
 				Raw: lo.Must(json.Marshal(
@@ -160,6 +168,6 @@ func (m *MockGpuPoolState) Subscribe(poolName string) {
 	m.g.Subscribe(poolName)
 }
 
-func (m *MockGpuPoolState) GetMatchedPoolName(nodeLabels map[string]string) string {
-	return m.g.GetMatchedPoolName(nodeLabels)
+func (m *MockGpuPoolState) GetMatchedPoolName(node *corev1.Node) (string, error) {
+	return m.g.GetMatchedPoolName(node)
 }

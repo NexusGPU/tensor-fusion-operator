@@ -18,14 +18,21 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	utils "github.com/NexusGPU/tensor-fusion-operator/internal/utils"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -77,15 +84,19 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	r.GpuPoolState.Set(pool.Name, &pool.Spec)
 
 	// TODO, any GPUNode changes trigger GPUPool reconcile, it should change the status, aggregate the total amount of resources, update current status
-
+	if err := r.startNodeDiscoverys(ctx, pool); err != nil {
+		return ctrl.Result{}, err
+	}
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
-
 	return ctrl.Result{}, nil
 }
 
-func (r *GPUPoolReconciler) StartNodeCompaction(ctx context.Context) error {
+func (r *GPUPoolReconciler) startNodeDiscoverys(
+	ctx context.Context,
+	pool *tfv1.GPUPool,
+) error {
 	log := log.FromContext(ctx)
-	log.Info("Starting node compaction cron job")
+	log.Info("Starting node node discovery job")
 
 	// TODO: need to write a interval in go coroutine to check if node could be compacted like Karpenter, when it's ok to mark as destroying, change the status and trigger a reconcile
 	// if it's AutoSelect mode, stop all Pods on it, and let ClusterAutoscaler or Karpenter to delete the node
@@ -96,6 +107,68 @@ func (r *GPUPoolReconciler) StartNodeCompaction(ctx context.Context) error {
 	// Strategy #2: check if whole Pool can be bin-packing into less nodes, check from low-priority to high-priority nodes one by one, if workloads could be moved to other nodes (using a simulated scheduler), evict it and mark cordoning, let scheduler to re-schedule
 
 	// Strategy #3: check if any node can be reduced to 1/2 size. for remaining nodes, check if allocated size < 1/2 * total size, if so, check if can buy smaller instance
+
+	podTmpl := &corev1.PodTemplate{}
+	err := json.Unmarshal(pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
+	if err != nil {
+		return fmt.Errorf("unmarshal pod template: %w", err)
+	}
+	// pool.Spec.NodeManagerConfig.NodeSelector
+	nodes := &corev1.NodeList{}
+	if err := r.Client.List(ctx, nodes); err != nil {
+		return fmt.Errorf("list nodes: %v", err)
+	}
+
+	for _, node := range nodes.Items {
+		matches, err := schedulingcorev1.MatchNodeSelectorTerms(&node, pool.Spec.NodeManagerConfig.NodeSelector)
+		if err != nil {
+			return err
+		}
+		if matches {
+			templateCopy := podTmpl.Template.DeepCopy()
+			if templateCopy.Spec.Affinity == nil {
+				templateCopy.Spec.Affinity = &corev1.Affinity{}
+			}
+			if templateCopy.Spec.Affinity.NodeAffinity == nil {
+				templateCopy.Spec.Affinity.NodeAffinity = &corev1.NodeAffinity{}
+			}
+			if templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution == nil {
+				templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &corev1.NodeSelector{
+					NodeSelectorTerms: make([]corev1.NodeSelectorTerm, 0),
+				}
+			}
+			templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms =
+				append(templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, corev1.NodeSelectorTerm{
+					MatchFields: []corev1.NodeSelectorRequirement{
+						{
+							Key:      "metadata.name",
+							Operator: corev1.NodeSelectorOpIn,
+							Values:   []string{node.Name},
+						},
+					},
+				})
+			// create node-discovery job
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-discovery-%s", node.Name),
+					// TODO: 	How to get the current ns
+					Namespace: "",
+				},
+				Spec: batchv1.JobSpec{
+					TTLSecondsAfterFinished: ptr.To[int32](3600 * 10),
+					Template:                *templateCopy,
+				},
+			}
+			if err := r.Get(ctx, client.ObjectKeyFromObject(job), job); err != nil {
+				if err := ctrl.SetControllerReference(pool, job, r.Scheme); err != nil {
+					return fmt.Errorf("set owner reference %w", err)
+				}
+				if err := r.Create(ctx, job); err != nil {
+					return fmt.Errorf("create node discovery job %w", err)
+				}
+			}
+		}
+	}
 	return nil
 }
 

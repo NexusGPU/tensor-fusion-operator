@@ -206,8 +206,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUPool")
 		os.Exit(1)
 	}
-	// Start compaction tasks in case any Pool enabled bin-packing
-	GPUPoolReconciler.StartNodeCompaction(ctx)
 
 	if err = (&controller.GPUNodeReconciler{
 		Client:       mgr.GetClient(),

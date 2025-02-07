@@ -90,8 +90,8 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 }
 
 func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node, poolState config.GpuPoolState) *tfv1.GPUNode {
-	poolName := poolState.GetMatchedPoolName(node.Labels)
-	if poolName == "" {
+	poolName, err := poolState.GetMatchedPoolName(node)
+	if err != nil {
 		log.FromContext(ctx).Info("No matched GPU pool", "node", node.Name, "labels", node.Labels)
 		return nil
 	}
