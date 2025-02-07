@@ -52,6 +52,9 @@ type TensorFusionClusterStatus struct {
 	TotalTFlops resource.Quantity `json:"totalTFlops"`
 	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
+	VirtualTFlops resource.Quantity `json:"virtualTFlops"`
+	VirtualVRAM   resource.Quantity `json:"virtualVRAM"`
+
 	AvailableTFlops resource.Quantity `json:"availableTFlops"`
 	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
@@ -63,6 +66,18 @@ type TensorFusionClusterStatus struct {
 
 	// +kubebuilder:default=0
 	RetryCount int64 `json:"retryCount"`
+
+	// calculated every 5m average
+	UtilizedTFlopsPercentage string `json:"utilizedTFlopsPercent,omitempty"`
+	UtilizedVRAMPercentage   string `json:"utilizedVRAMPercent,omitempty"`
+
+	// updated with interval
+	AllocatedTFlopsPercent string `json:"allocatedTFlopsPercent,omitempty"`
+	AllocatedVRAMPercent   string `json:"allocatedVRAMPercent,omitempty"`
+
+	// aggregated with interval
+	SavedCostsPerMonth       string `json:"savedCostsPerMonth,omitempty"`
+	PotentialSavingsPerMonth string `json:"potentialSavingsPerMonth,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown

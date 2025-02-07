@@ -306,6 +306,9 @@ type GPUPoolStatus struct {
 	TotalTFlops resource.Quantity `json:"totalTFlops"`
 	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
+	VirtualTFlops resource.Quantity `json:"virtualTFlops"`
+	VirtualVRAM   resource.Quantity `json:"virtualVRAM"`
+
 	AvailableTFlops resource.Quantity `json:"availableTFlops"`
 	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
@@ -318,6 +321,18 @@ type GPUPoolStatus struct {
 	// the status will be updated periodically, default to 5s, progress will be 0-100.
 	// when the progress is 100, the component version or config is fully updated.
 	ComponentStatus PoolComponentStatus `json:"componentStatus"`
+
+	// calculated every 5m average
+	UtilizedTFlopsPercentage string `json:"utilizedTFlopsPercent,omitempty"`
+	UtilizedVRAMPercentage   string `json:"utilizedVRAMPercent,omitempty"`
+
+	// updated with interval
+	AllocatedTFlopsPercent string `json:"allocatedTFlopsPercent,omitempty"`
+	AllocatedVRAMPercent   string `json:"allocatedVRAMPercent,omitempty"`
+
+	// aggregated with interval
+	SavedCostsPerMonth       string `json:"savedCostsPerMonth,omitempty"`
+	PotentialSavingsPerMonth string `json:"potentialSavingsPerMonth,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown

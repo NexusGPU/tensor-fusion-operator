@@ -848,6 +848,8 @@ func (in *GPUPoolStatus) DeepCopyInto(out *GPUPoolStatus) {
 	}
 	out.TotalTFlops = in.TotalTFlops.DeepCopy()
 	out.TotalVRAM = in.TotalVRAM.DeepCopy()
+	out.VirtualTFlops = in.VirtualTFlops.DeepCopy()
+	out.VirtualVRAM = in.VirtualVRAM.DeepCopy()
 	out.AvailableTFlops = in.AvailableTFlops.DeepCopy()
 	out.AvailableVRAM = in.AvailableVRAM.DeepCopy()
 	out.ProvisioningStatus = in.ProvisioningStatus
@@ -1824,6 +1826,8 @@ func (in *TensorFusionClusterStatus) DeepCopyInto(out *TensorFusionClusterStatus
 	}
 	out.TotalTFlops = in.TotalTFlops.DeepCopy()
 	out.TotalVRAM = in.TotalVRAM.DeepCopy()
+	out.VirtualTFlops = in.VirtualTFlops.DeepCopy()
+	out.VirtualVRAM = in.VirtualVRAM.DeepCopy()
 	out.AvailableTFlops = in.AvailableTFlops.DeepCopy()
 	out.AvailableVRAM = in.AvailableVRAM.DeepCopy()
 	if in.ReadyGPUPools != nil {

@@ -762,6 +762,11 @@ spec:
           status:
             description: TensorFusionClusterStatus defines the observed state of TensorFusionCluster.
             properties:
+              allocatedTFlopsPercent:
+                description: updated with interval
+                type: string
+              allocatedVRAMPercent:
+                type: string
               availableTFlops:
                 anyOf:
                 - type: integer
@@ -845,6 +850,8 @@ spec:
                 - Destroying
                 - Unknown
                 type: string
+              potentialSavingsPerMonth:
+                type: string
               readyGPUPools:
                 items:
                   type: string
@@ -853,6 +860,9 @@ spec:
                 default: 0
                 format: int64
                 type: integer
+              savedCostsPerMonth:
+                description: aggregated with interval
+                type: string
               totalGPUs:
                 format: int32
                 type: integer
@@ -874,6 +884,23 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              utilizedTFlopsPercent:
+                description: calculated every 5m average
+                type: string
+              utilizedVRAMPercent:
+                type: string
+              virtualTFlops:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              virtualVRAM:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             required:
             - availableTFlops
             - availableVRAM
@@ -883,6 +910,8 @@ spec:
             - totalPools
             - totalTFlops
             - totalVRAM
+            - virtualTFlops
+            - virtualVRAM
             type: object
         type: object
     served: true
