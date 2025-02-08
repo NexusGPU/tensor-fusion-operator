@@ -369,8 +369,8 @@ type GPUPoolStatus struct {
 	ComponentStatus PoolComponentStatus `json:"componentStatus"`
 
 	// calculated every 5m average
-	UtilizedTFlopsPercentage string `json:"utilizedTFlopsPercent,omitempty"`
-	UtilizedVRAMPercentage   string `json:"utilizedVRAMPercent,omitempty"`
+	UtilizedTFlopsPercent string `json:"utilizedTFlopsPercent,omitempty"`
+	UtilizedVRAMPercent   string `json:"utilizedVRAMPercent,omitempty"`
 
 	// updated with interval
 	AllocatedTFlopsPercent string `json:"allocatedTFlopsPercent,omitempty"`

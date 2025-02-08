@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	controllerutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -88,7 +87,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if tfc.Status.Phase == "" || tfc.Status.Phase == constants.PhaseUnknown {
 		tfc.SetAsPending()
-		if err := r.mustUpdateTFClusterStatus(ctx, tfc); err != nil {
+		if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
 			return ctrl.Result{}, err
 		}
 		// Next loop to make sure the custom resources are created
@@ -123,7 +122,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	if tfc.Status.Phase == constants.PhaseUpdating {
-		if err := r.mustUpdateTFClusterStatus(ctx, tfc); err != nil {
+		if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
@@ -140,7 +139,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 			// store additional check result for each component
 			tfc.SetAsUpdating(conditions...)
 
-			if err := r.mustUpdateTFClusterStatus(ctx, tfc); err != nil {
+			if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
 				return ctrl.Result{}, err
 			}
 			delay := utils.CalculateExponentialBackoffWithJitter(tfc.Status.RetryCount)
@@ -153,7 +152,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 			tfc.RefreshStatus(gpupools)
-			if err := r.mustUpdateTFClusterStatus(ctx, tfc); err != nil {
+			if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -167,7 +166,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	tfc.SetAsReady()
 	tfc.RefreshStatus(gpupools)
-	if err := r.mustUpdateTFClusterStatus(ctx, tfc); err != nil {
+	if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -347,30 +346,13 @@ func (r *TensorFusionClusterReconciler) checkTFClusterComponentsReady(ctx contex
 	return allPass, conditions, nil
 }
 
-func (r *TensorFusionClusterReconciler) mustUpdateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster) error {
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		// Get the latest version of the tfc
-		latestTFCluster := &tfv1.TensorFusionCluster{}
-		if err := r.Get(ctx, client.ObjectKey{
-			Name:      tfc.Name,
-			Namespace: tfc.Namespace,
-		}, latestTFCluster); err != nil {
-			return err
-		}
-
-		// Update the status fields we care about
-		latestTFCluster.Status = tfc.Status
-
-		// Update the cluster status
-		if err := r.Status().Update(ctx, latestTFCluster); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
+func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster) error {
+	// Update the cluster status
+	if err := r.Status().Update(ctx, tfc); err != nil {
 		r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())
+		return err
 	}
-	return err
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

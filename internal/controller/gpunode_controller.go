@@ -20,10 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
@@ -98,11 +98,7 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode) error {
-	namespace := constants.NamespaceDefaultVal
-	if os.Getenv(constants.NamespaceEnv) != "" {
-		namespace = os.Getenv(constants.NamespaceEnv)
-	}
-
+	namespace := utils.CurrentNamespace()
 	log := log.FromContext(ctx)
 	for labelKey := range node.Labels {
 		if strings.HasPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix) {

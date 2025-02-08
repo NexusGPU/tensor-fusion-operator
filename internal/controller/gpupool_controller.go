@@ -144,9 +144,8 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 			// create node-discovery job
 			job := &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("node-discovery-%s", node.Name),
-					// TODO: 	How to get the current ns
-					Namespace: "",
+					Name:      fmt.Sprintf("node-discovery-%s", node.Name),
+					Namespace: utils.CurrentNamespace(),
 				},
 				Spec: batchv1.JobSpec{
 					TTLSecondsAfterFinished: ptr.To[int32](3600 * 10),
@@ -154,12 +153,15 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 				},
 			}
 			if err := r.Get(ctx, client.ObjectKeyFromObject(job), job); err != nil {
-				if err := ctrl.SetControllerReference(pool, job, r.Scheme); err != nil {
-					return fmt.Errorf("set owner reference %w", err)
+				if errors.IsNotFound(err) {
+					if err := ctrl.SetControllerReference(pool, job, r.Scheme); err != nil {
+						return fmt.Errorf("set owner reference %w", err)
+					}
+					if err := r.Create(ctx, job); err != nil {
+						return fmt.Errorf("create node discovery job %w", err)
+					}
 				}
-				if err := r.Create(ctx, job); err != nil {
-					return fmt.Errorf("create node discovery job %w", err)
-				}
+				return fmt.Errorf("create node job %w", err)
 			}
 		}
 	}

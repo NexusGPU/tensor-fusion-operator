@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math/rand/v2"
+	"os"
 	"time"
 
 	constants "github.com/NexusGPU/tensor-fusion-operator/internal/constants"
@@ -59,4 +60,13 @@ func CalculateExponentialBackoffWithJitter(retryCount int64) time.Duration {
 		totalDelay = MaxReconcileDelay
 	}
 	return totalDelay
+}
+
+func CurrentNamespace() string {
+	namespace := constants.NamespaceDefaultVal
+	envNamespace := os.Getenv(constants.NamespaceEnv)
+	if envNamespace != "" {
+		namespace = envNamespace
+	}
+	return namespace
 }
