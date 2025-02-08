@@ -37,9 +37,15 @@ data:
       costPerHour: 1.64
       fp16TFlops: 312
 
+    - model: A10
+      vendor: NVIDIA
+      costPerHour: 0.9
+      fp16TFlops: 125
+
+    # A10G has less CUDA core than A10, but with RT cores for rendering case
     - model: A10G
       vendor: NVIDIA
-      costPerHour: 0.4
+      costPerHour: 0.75 # from lambda labs
       fp16TFlops: 125
 
     - model: A40

@@ -70,25 +70,49 @@ spec:
                   such as AWS, GCP, Azure etc.
                 properties:
                   authType:
+                    enum:
+                    - accessKey
+                    - serviceAccountRole
                     type: string
                   enable:
+                    default: true
                     type: boolean
-                  gpuNodeControllerType:
-                    type: string
                   name:
                     type: string
                   params:
                     properties:
-                      accessKey:
+                      accessKeyEnvVar:
+                        type: string
+                      accessKeyPath:
+                        description: the secret of access key and secret key, must
+                          be mounted as env var or file path
+                        type: string
+                      defaultRegion:
                         type: string
                       iamRole:
+                        description: preferred IAM role since it's more secure
                         type: string
-                      region:
+                      secretKeyEnvVar:
                         type: string
-                      secretKey:
+                      secretKeyPath:
                         type: string
                     type: object
                   type:
+                    description: support popular cloud providers
+                    enum:
+                    - aws
+                    - lambda-labs
+                    - gcp
+                    - azure
+                    - oracle-oci
+                    - ibm
+                    - openshift
+                    - vultr
+                    - together-ai
+                    - aliyun
+                    - nvidia
+                    - tencent
+                    - runpod
                     type: string
                 type: object
               dataPipelines:
@@ -204,8 +228,8 @@ spec:
                               properties:
                                 tflopsOversellRatio:
                                   default: 500
-                                  description: The multipler of TFlops to oversell,
-                                    default to 500%, indicates 5 times oversell
+                                  description: The multi of TFlops to oversell, default
+                                    to 500%, indicates 5 times oversell
                                   format: int32
                                   maximum: 100000
                                   minimum: 100
@@ -368,6 +392,7 @@ spec:
                                         - kubernetes.io/os
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
+                                        - tensor-fusion.ai/gpu-arch
                                         type: string
                                       operator:
                                         default: In
@@ -418,6 +443,7 @@ spec:
                                         - kubernetes.io/os
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
+                                        - tensor-fusion.ai/gpu-arch
                                         type: string
                                       operator:
                                         default: In

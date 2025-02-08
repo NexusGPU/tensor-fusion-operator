@@ -130,8 +130,8 @@ spec:
                     properties:
                       tflopsOversellRatio:
                         default: 500
-                        description: The multipler of TFlops to oversell, default
-                          to 500%, indicates 5 times oversell
+                        description: The multi of TFlops to oversell, default to 500%,
+                          indicates 5 times oversell
                         format: int32
                         maximum: 100000
                         minimum: 100
@@ -293,6 +293,7 @@ spec:
                               - kubernetes.io/os
                               - topology.kubernetes.io/zone
                               - karpenter.sh/capacity-type
+                              - tensor-fusion.ai/gpu-arch
                               type: string
                             operator:
                               default: In
@@ -343,6 +344,7 @@ spec:
                               - kubernetes.io/os
                               - topology.kubernetes.io/zone
                               - karpenter.sh/capacity-type
+                              - tensor-fusion.ai/gpu-arch
                               type: string
                             operator:
                               default: In
@@ -750,7 +752,7 @@ spec:
                 type: string
               componentStatus:
                 description: |-
-                  when updating any component version or config, poolcontroller will perform rolling update.
+                  when updating any component version or config, pool controller will perform rolling update.
                   the status will be updated periodically, default to 5s, progress will be 0-100.
                   when the progress is 100, the component version or config is fully updated.
                 properties:

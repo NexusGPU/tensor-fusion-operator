@@ -224,6 +224,9 @@ spec:
                     type: string
                   hostname:
                     type: string
+                  instanceID:
+                    description: only set when node is managed by TensorFusion
+                    type: string
                   ip:
                     type: string
                   kernelVersion:

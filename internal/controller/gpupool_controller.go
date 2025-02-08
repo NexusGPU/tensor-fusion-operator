@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,6 +48,7 @@ type GPUPoolReconciler struct {
 	GpuPoolState config.GpuPoolState
 	GpuNodeState config.GpuNodeState
 	Scheme       *runtime.Scheme
+	Recorder     record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
@@ -79,6 +81,13 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	if deleted {
 		return ctrl.Result{}, nil
+	}
+
+	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
+	if pool.Spec.NodeManagerConfig.NodeProvisioner != nil && pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative {
+		if err := r.reconcilePoolCapacityWithProvisioner(ctx, pool); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// sync the GPU Pool into memory, used by scheduler and mutation webhook

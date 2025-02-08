@@ -106,6 +106,10 @@ const (
 )
 
 type GPUNodeInfo struct {
+	// +optional
+	// only set when node is managed by TensorFusion
+	InstanceID string `json:"instanceID,omitempty"`
+
 	Hostname         string `json:"hostname,omitempty"`
 	IP               string `json:"ip,omitempty"`
 	KernelVersion    string `json:"kernelVersion,omitempty"`

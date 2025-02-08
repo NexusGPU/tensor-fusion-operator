@@ -199,6 +199,7 @@ func main() {
 	GPUPoolReconciler := &controller.GPUPoolReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
+		Recorder:     mgr.GetEventRecorderFor("GPUPool"),
 		GpuPoolState: gpuPoolState,
 		GpuNodeState: gpuNodeState,
 	}

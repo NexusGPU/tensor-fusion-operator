@@ -32,11 +32,13 @@ const newNodeProtectionDuration = 5 * time.Minute
 // if it's AutoSelect mode, stop all Pods on it, and let ClusterAutoscaler or Karpenter to delete the node
 // if it's Provision mode, stop all Pods on it, and destroy the Node from cloud provider
 
-// Strategy #1: check if any empty node can be deleted (must satisfy 'allocatedCapacity + warmUpCapacity <= currentCapacity - toBeDeletedCapacity')
+// Strategy #1: check if any empty node can be deleted (must satisfy 'allocatedCapacity + warmUpCapacity <= currentCapacity - toBeDeletedCapacity') -- Done
 
 // Strategy #2: check if whole Pool can be bin-packing into less nodes, check from low-priority to high-priority nodes one by one, if workloads could be moved to other nodes (using a simulated scheduler), evict it and mark cordoned, let scheduler to re-schedule
 
 // Strategy #3: check if any node can be reduced to 1/2 size. for remaining nodes, check if allocated size < 1/2 * total size, if so, check if can buy smaller instance
+
+// Strategy #4: check if any two same nodes can be merged into one larger node, and make the remained capacity bigger and node number less without violating the capacity constraint and saving the hidden management,license,monitoring costs, potentially schedule more workloads since remaining capacity is single cohesive piece rather than fragments
 
 // Add adds the provide y quantity to the current value. If the current value is zero,
 // the format of the quantity will be updated to the format of y.
@@ -52,6 +54,11 @@ func (r *GPUPoolCompactionReconciler) checkNodeCompaction(ctx context.Context, p
 		return fmt.Errorf("failed to list nodes : %w", err)
 	}
 	for _, gpuNode := range allNodes.Items {
+		// Skip a node that is labeled as NoDisrupt
+		if gpuNode.Labels[constants.SchedulingDoNotDisruptLabel] == "true" {
+			continue
+		}
+
 		// Check if node is empty, if not, continue
 		var nodeGPUConnection tfv1.TensorFusionConnectionList
 		if err := r.List(ctx, &nodeGPUConnection, client.MatchingLabels(map[string]string{
@@ -72,17 +79,14 @@ func (r *GPUPoolCompactionReconciler) checkNodeCompaction(ctx context.Context, p
 		nodeCapTFlops, _ := gpuNode.Status.TotalTFlops.AsInt64()
 		nodeCapVRAM, _ := gpuNode.Status.TotalVRAM.AsInt64()
 
-		poolCapTFlops, _ := pool.Status.TotalTFlops.AsInt64()
-		poolCapVRAM, _ := pool.Status.TotalVRAM.AsInt64()
-
 		poolAvailableTFlops, _ := pool.Status.AvailableTFlops.AsInt64()
 		poolAvailableVRAM, _ := pool.Status.AvailableVRAM.AsInt64()
 
 		poolWarmUpTFlops, _ := pool.Spec.CapacityConfig.WarmResources.TFlops.AsInt64()
 		poolWarmUpVRAM, _ := pool.Spec.CapacityConfig.WarmResources.VRAM.AsInt64()
 
-		couldBeTerminatedByTFlops := poolCapTFlops-poolAvailableTFlops+poolWarmUpTFlops <= poolCapTFlops-nodeCapTFlops
-		couldBeTerminatedByVRAM := poolCapVRAM-poolAvailableVRAM+poolWarmUpVRAM <= poolCapVRAM-nodeCapVRAM
+		couldBeTerminatedByTFlops := poolAvailableTFlops-nodeCapTFlops >= poolWarmUpTFlops
+		couldBeTerminatedByVRAM := poolAvailableVRAM-nodeCapVRAM >= poolWarmUpVRAM
 
 		if couldBeTerminatedByTFlops && couldBeTerminatedByVRAM {
 			r.Recorder.Eventf(pool, "Compaction", "Node %s is empty and deletion won't impact warm-up capacity, start terminating it", gpuNode.Name)

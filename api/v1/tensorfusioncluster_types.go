@@ -101,22 +101,58 @@ type GPUPoolDefinition struct {
 
 // ComputingVendorConfig defines the Cloud vendor connection such as AWS, GCP, Azure etc.
 type ComputingVendorConfig struct {
-	Name     string `json:"name,omitempty"`     // Name of the computing vendor.
-	Type     string `json:"type,omitempty"`     // Type of the computing vendor (e.g., aws, lambdalabs, gcp, azure, together.ai).
-	AuthType string `json:"authType,omitempty"` // Authentication type (e.g., accessKey, serviceAccount).
+	Name string `json:"name,omitempty"`
+
+	// support popular cloud providers
+	Type ComputingVendorName `json:"type,omitempty"`
+
+	AuthType AuthTypeEnum `json:"authType,omitempty"` // Authentication type (e.g., accessKey, serviceAccount).
 
 	// +optional
+	// +kubebuilder:default=true
 	Enable *bool `json:"enable,omitempty"` // Enable or disable the computing vendor.
 
-	GPUNodeControllerType string                `json:"gpuNodeControllerType,omitempty"` // Type of GPU node controller (e.g., asg, karpenter, native).
-	Params                ComputingVendorParams `json:"params,omitempty"`
+	Params ComputingVendorParams `json:"params,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=accessKey;serviceAccountRole
+type AuthTypeEnum string
+
+const (
+	AuthTypeAccessKey          AuthTypeEnum = "accessKey"
+	AuthTypeServiceAccountRole AuthTypeEnum = "serviceAccountRole"
+)
+
+// +kubebuilder:validation:Enum=aws;lambda-labs;gcp;azure;oracle-oci;ibm;openshift;vultr;together-ai;aliyun;nvidia;tencent;runpod
+type ComputingVendorName string
+
+const (
+	ComputingVendorAWS        ComputingVendorName = "aws"
+	ComputingVendorGCP        ComputingVendorName = "gcp"
+	ComputingVendorAzure      ComputingVendorName = "azure"
+	ComputingVendorOracle     ComputingVendorName = "oracle-oci"
+	ComputingVendorIBM        ComputingVendorName = "ibm"
+	ComputingVendorOpenShift  ComputingVendorName = "openshift"
+	ComputingVendorVultr      ComputingVendorName = "vultr"
+	ComputingVendorTogetherAI ComputingVendorName = "together-ai"
+	ComputingVendorLambdaLabs ComputingVendorName = "lambda-labs"
+	ComputingVendorAliyun     ComputingVendorName = "aliyun"
+	ComputingVendorNvidia     ComputingVendorName = "nvidia"
+	ComputingVendorTencent    ComputingVendorName = "tencent"
+	ComputingVendorRunPod     ComputingVendorName = "runpod"
+)
+
 type ComputingVendorParams struct {
-	Region    string `json:"region,omitempty"`    // Region for the computing vendor.
-	AccessKey string `json:"accessKey,omitempty"` // Access key for the computing vendor.
-	SecretKey string `json:"secretKey,omitempty"` // Secret key for the computing vendor.
-	IAMRole   string `json:"iamRole,omitempty"`   // IAM role for the computing vendor like AWS
+	DefaultRegion string `json:"defaultRegion,omitempty"` // Region for the computing vendor.
+
+	// the secret of access key and secret key, must be mounted as env var or file path
+	AccessKeyPath   string `json:"accessKeyPath,omitempty"`
+	SecretKeyPath   string `json:"secretKeyPath,omitempty"`
+	AccessKeyEnvVar string `json:"accessKeyEnvVar,omitempty"`
+	SecretKeyEnvVar string `json:"secretKeyEnvVar,omitempty"`
+
+	// preferred IAM role since it's more secure
+	IAMRole string `json:"iamRole,omitempty"`
 }
 
 // StorageVendorConfig defines Postgres database with extensions for timeseries storage and other resource aggregation results, system events and diagnostics reports etc.

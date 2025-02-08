@@ -62,3 +62,15 @@ const (
 	PhaseSucceeded = "Succeeded"
 	PhaseFailed    = "Failed"
 )
+
+const (
+	// No disrupt label, similar to Karpenter, avoid TFConnection/Worker/GPUNode to be moved to another node or destroying node.
+	// Refer: https://karpenter.sh/docs/concepts/disruption/
+	SchedulingDoNotDisruptLabel = "tensor-fusion.ai/do-not-disrupt"
+)
+
+const (
+	GPUNodeOSLinux   = "linux"
+	GPUNodeOSWindows = "windows"
+	GPUNodeOSMacOS   = "macos"
+)

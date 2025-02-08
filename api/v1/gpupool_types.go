@@ -69,21 +69,21 @@ type Oversubscription struct {
 	// +kubebuilder:default=50
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
-	VramExpandToHostMem int32 `json:"vramExpandToHostMem,omitempty"`
+	VRAMExpandToHostMem int32 `json:"vramExpandToHostMem,omitempty"`
 
 	// the percentage of Host Disk appending to GPU VRAM, default to 70%
 	// +optional
 	// +kubebuilder:default=70
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=100
-	VramExpandToHostDisk int32 `json:"vramExpandToHostDisk,omitempty"`
+	VRAMExpandToHostDisk int32 `json:"vramExpandToHostDisk,omitempty"`
 
-	// The multipler of TFlops to oversell, default to 500%, indicates 5 times oversell
+	// The multi of TFlops to oversell, default to 500%, indicates 5 times oversell
 	// +optional
 	// +kubebuilder:default=500
 	// +kubebuilder:validation:Minimum=100
 	// +kubebuilder:validation:Maximum=100000
-	TflopsOversellRatio int32 `json:"tflopsOversellRatio,omitempty"`
+	TFlopsOversellRatio int32 `json:"tflopsOversellRatio,omitempty"`
 }
 
 type NodeManagerConfig struct {
@@ -171,14 +171,18 @@ type Requirement struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type
+// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type;tensor-fusion.ai/gpu-arch
 type NodeRequirementKey string
 
 const (
-	NodeRequirementKeyInstanceType NodeRequirementKey = "node.kubernetes.io/instance-type"
-	NodeRequirementKeyArchitecture NodeRequirementKey = "kubernetes.io/arch"
-	NodeRequirementKeyOS           NodeRequirementKey = "kubernetes.io/os"
-	NodeRequirementKeyZone         NodeRequirementKey = "topology.kubernetes.io/zone"
+	NodeRequirementKeyInstanceType    NodeRequirementKey = "node.kubernetes.io/instance-type"
+	NodeRequirementKeyArchitecture    NodeRequirementKey = "kubernetes.io/arch"
+	NodeRequirementKeyGPUArchitecture NodeRequirementKey = "tensor-fusion.ai/gpu-arch"
+
+	NodeRequirementKeyOS   NodeRequirementKey = "kubernetes.io/os"
+	NodeRequirementKeyZone NodeRequirementKey = "topology.kubernetes.io/zone"
+
+	// capacity-type is charging method, can be spot/preemptive or on-demand
 	NodeRequirementKeyCapacityType NodeRequirementKey = "karpenter.sh/capacity-type"
 )
 
@@ -363,7 +367,7 @@ type GPUPoolStatus struct {
 	// ProvisioningStatus is to track the status of those outside GPU nodes.
 	ProvisioningStatus PoolProvisioningStatus `json:"provisioningStatus"`
 
-	// when updating any component version or config, poolcontroller will perform rolling update.
+	// when updating any component version or config, pool controller will perform rolling update.
 	// the status will be updated periodically, default to 5s, progress will be 0-100.
 	// when the progress is 100, the component version or config is fully updated.
 	ComponentStatus PoolComponentStatus `json:"componentStatus"`
