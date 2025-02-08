@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 
@@ -30,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -98,61 +98,60 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode) error {
-	poolName := node.Annotations[constants.PoolIdentifierAnnotationKey]
-	if poolName == "" {
-		log.FromContext(ctx).Info("Orphan GPU node found, not belongs to any pool, skipping reconcile.", "node", node.Name)
-		return nil
-	}
-
 	namespace := constants.NamespaceDefaultVal
 	if os.Getenv(constants.NamespaceEnv) != "" {
 		namespace = os.Getenv(constants.NamespaceEnv)
 	}
-	hypervisorPodName := fmt.Sprintf("%s-%s-hypervisor", poolName, node.Name)
-	pool := r.GpuPoolState.Get(poolName)
-	if pool == nil {
-		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod, pool: %s", poolName)
-	}
-	hypervisorConfig := pool.ComponentConfig.Hypervisor
 
-	hypervisorPod := &corev1.Pod{}
-	err := r.Get(ctx, types.NamespacedName{Name: hypervisorPodName, Namespace: namespace}, hypervisorPod)
+	log := log.FromContext(ctx)
+	for labelKey := range node.Labels {
+		if strings.HasPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix) {
+			segment := strings.Split(labelKey, "/")
+			if len(segment) != 3 {
+				log.Info("Invalid label key for GPU node", "key", labelKey, "node", node.Name)
+				continue
+			}
+			poolName := segment[2]
 
-	if errors.IsNotFound(err) {
-		podTmpl := &corev1.PodTemplate{}
-		err := json.Unmarshal(hypervisorConfig.PodTemplate.Raw, podTmpl)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal pod template: %w", err)
-		}
-		spec := podTmpl.Template.Spec
-		if spec.NodeSelector == nil {
-			spec.NodeSelector = make(map[string]string)
-		}
-		spec.NodeSelector["kubernetes.io/hostname"] = node.Name
-
-		newPod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      hypervisorPodName,
-				Namespace: namespace,
-				Labels: map[string]string{
-					constants.PoolIdentifierAnnotationKey: poolName,
+			hypervisorPodName := fmt.Sprintf("%s-%s-hypervisor", poolName, node.Name)
+			pool := r.GpuPoolState.Get(poolName)
+			if pool == nil {
+				return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod, pool: %s", poolName)
+			}
+			hypervisorConfig := pool.ComponentConfig.Hypervisor
+			podTmpl := &corev1.PodTemplate{}
+			err := json.Unmarshal(hypervisorConfig.PodTemplate.Raw, podTmpl)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal pod template: %w", err)
+			}
+			spec := podTmpl.Template.Spec.DeepCopy()
+			if spec.NodeSelector == nil {
+				spec.NodeSelector = make(map[string]string)
+			}
+			spec.NodeSelector["kubernetes.io/hostname"] = node.Name
+			newPod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      hypervisorPodName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelKey, poolName): "true",
+					},
 				},
-			},
-			Spec: spec,
-		}
+				Spec: *spec,
+			}
 
-		e := controllerutil.SetControllerReference(node, newPod, r.Scheme)
-		if e != nil {
-			return fmt.Errorf("failed to set controller reference: %w", e)
+			e := controllerutil.SetControllerReference(node, newPod, r.Scheme)
+			if e != nil {
+				return fmt.Errorf("failed to set controller reference: %w", e)
+			}
+			_, err = controllerutil.CreateOrUpdate(ctx, r.Client, newPod, func() error {
+				log.Info("Creating or Updating hypervisor pod", "name", hypervisorPodName)
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("failed to create or update hypervisor pod: %w", err)
+			}
 		}
-
-		err = r.Create(ctx, newPod)
-		if err != nil {
-			return fmt.Errorf("failed to create hypervisorPod: %v", err)
-		}
-		return nil
 	}
-	// TODO: handle update and new generation case, new Pool config case etc.
-
 	return nil
 }

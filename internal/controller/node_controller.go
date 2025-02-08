@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,31 +60,27 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	existGPUNode := &tfv1.GPUNode{}
-	if err := r.Get(ctx, types.NamespacedName{Name: node.Name}, existGPUNode); err != nil {
-		if errors.IsNotFound(err) {
-			// generate tensor fusion GPU node and apply to cluster
-			gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
-			// set owner reference to cascade delete
-			e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
-			if e != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
-			}
-			if err := r.Client.Create(ctx, gpuNode); err != nil {
-				return ctrl.Result{}, fmt.Errorf("create GPUNode(%s) : %w", gpuNode.Namespace+"/"+gpuNode.Name, err)
-			}
-			return ctrl.Result{}, nil
+	// Remove deletion mark if updated
+	if node.GetLabels()[constants.NodeDeletionMark] == "true" {
+		node.GetLabels()[constants.NodeDeletionMark] = "false"
+		if err := r.Patch(ctx, node, client.Merge); err != nil {
+			return ctrl.Result{}, fmt.Errorf("patch node(%s) : %w", node.Name, err)
 		}
 	}
 
-	// Update GPU node status, trigger GPUNode's reconciliation
-	if node.Generation != existGPUNode.Status.ObservedGeneration {
-		existGPUNode.Status.ObservedGeneration = node.Generation
-		if err := r.Status().Update(ctx, existGPUNode); err != nil {
-			return ctrl.Result{}, fmt.Errorf("update status: %w", err)
-		}
-	}
+	// generate tensor fusion GPU node and apply to cluster
+	gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
 
+	// set owner reference to cascade delete
+	e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
+	if e != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
+	}
+	_, e = controllerutil.CreateOrPatch(ctx, r.Client, gpuNode, nil)
+	if e != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
+	}
+	log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
 	return ctrl.Result{}, nil
 }
 
@@ -99,11 +94,15 @@ func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: node.Name,
 			Labels: map[string]string{
-				constants.PoolIdentifierAnnotationKey: poolName,
+				constants.GPUNodePoolIdentifierLabelKey: poolName,
 			},
 		},
 		Spec: tfv1.GPUNodeSpec{
 			ManageMode: tfv1.GPUNodeManageModeAutoSelect,
+		},
+		Status: tfv1.GPUNodeStatus{
+			KubernetesNodeName: node.Name,
+			ObservedGeneration: node.Generation,
 		},
 	}
 	return gpuNode

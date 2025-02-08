@@ -25,22 +25,34 @@ import (
 
 // GPUNodeClassSpec defines the desired state of GPUNodeClass.
 type GPUNodeClassSpec struct {
-	OSImageFamily string `json:"osImageFamily,omitempty"` // The AMI family to use
+	// +optional
+	// The launch template to use for VM instances, if set, all other fields could be skipped
+	LaunchTemplate NodeClassItemSelectorTerms `json:"launchTemplate"`
 
-	OSImageSelectorTerms []NodeClassOSImageSelectorTerms `json:"osImageSelectorTerms,omitempty"`
+	// +optional
+	// Could be private or public, varies in different cloud vendor, define where to query the OSImageID
+	// +kubebuilder:default="Private"
+	OSImageType OSImageTypeEnum `json:"osImageType,omitempty"`
+
+	// the OS image identifier string, default to use first one, if not found, fallback to others
+	OSImageSelectorTerms []NodeClassItemSelectorTerms `json:"osImageSelectorTerms,omitempty"`
+
+	// +optional
+	// The instance profile to use, assign IAM role and permissions for EC2 instances
+	InstanceProfile string `json:"instanceProfile,omitempty"`
+
+	// +optional
+	// for AWS only, IMDSv2 metadata service options
+	MetadataOptions *NodeClassMetadataOptions `json:"metadataOptions,omitempty"`
+
+	// +optional
+	SecurityGroupSelectorTerms []NodeClassItemSelectorTerms `json:"securityGroupSelectorTerms,omitempty"`
+
+	// +optional
+	SubnetSelectorTerms []NodeClassItemSelectorTerms `json:"subnetSelectorTerms,omitempty"` // Terms to select subnets
 
 	// +optional
 	BlockDeviceMappings []NodeClassBlockDeviceMappings `json:"blockDeviceMappings,omitempty"` // Block device mappings for the instance
-
-	InstanceProfile string `json:"instanceProfile,omitempty"` // The instance profile to use
-
-	// +optional
-	MetadataOptions NodeClassMetadataOptions `json:"metadataOptions,omitempty"`
-
-	// +optional
-	SecurityGroupSelectorTerms []NodeClassItemIDSelectorTerms `json:"securityGroupSelectorTerms,omitempty"`
-
-	SubnetSelectorTerms []NodeClassItemIDSelectorTerms `json:"subnetSelectorTerms,omitempty"` // Terms to select subnets
 
 	// +optional
 	Tags map[string]string `json:"tags,omitempty"` // Tags associated with the resource
@@ -49,32 +61,66 @@ type GPUNodeClassSpec struct {
 	UserData string `json:"userData,omitempty"` // User data script for the instance
 }
 
-type NodeClassItemIDSelectorTerms struct {
-	ID string `json:"id,omitempty"` // The ID of the security group
+// +kubebuilder:validation:Enum=Private;Public;System
+type OSImageTypeEnum string
+
+const (
+	OSImageTypePrivate OSImageTypeEnum = "Private"
+	OSImageTypePublic  OSImageTypeEnum = "Public"
+	OSImageTypeSystem  OSImageTypeEnum = "System"
+)
+
+type NodeClassItemSelectorTerms struct {
+
+	// +optional
+	// The item ID
+	ID string `json:"id,omitempty"`
+
+	// +optional
+	// The item name
+	Name string `json:"name,omitempty"`
+
+	// +optional
+	// Query by tags
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
+// AWS IMDSv2 metadata service options
 type NodeClassMetadataOptions struct {
-	HttpEndpoint            string `json:"httpEndpoint,omitempty"`            // Whether the HTTP metadata endpoint is enabled
-	HttpProtocolIPv6        string `json:"httpProtocolIPv6,omitempty"`        // Whether IPv6 is enabled for the HTTP metadata endpoint
-	HttpPutResponseHopLimit int    `json:"httpPutResponseHopLimit,omitempty"` // The hop limit for HTTP PUT responses
-	HttpTokens              string `json:"httpTokens,omitempty"`              // The HTTP tokens required for metadata access
-}
+	// +optional
+	// +kubebuilder:default=true
+	HttpEndpoint bool `json:"httpEndpoint,omitempty"`
 
-type NodeClassOSImageSelectorTerms struct {
-	Name  string `json:"name,omitempty"`
-	Owner string `json:"owner,omitempty"`
+	// +optional
+	// +kubebuilder:default=false
+	HttpProtocolIPv6 bool `json:"httpProtocolIPv6,omitempty"`
+
+	// +optional
+	// +kubebuilder:default=1
+	HttpPutResponseHopLimit int `json:"httpPutResponseHopLimit,omitempty"`
+
+	// +optional
+	// +kubebuilder:default="required"
+	HttpTokens string `json:"httpTokens,omitempty"`
 }
 
 type NodeClassBlockDeviceMappings struct {
-	DeviceName string               `json:"deviceName,omitempty"` // The device name for the block device
-	Ebs        NodeClassEbsSettings `json:"ebs,omitempty"`
+	DeviceName string                       `json:"deviceName,omitempty"` // The device name for the block device
+	EBS        NodeClassBlockDeviceSettings `json:"ebs,omitempty"`
 }
 
-type NodeClassEbsSettings struct {
-	DeleteOnTermination bool   `json:"deleteOnTermination,omitempty"` // Whether to delete the EBS volume on termination
-	Encrypted           bool   `json:"encrypted,omitempty"`           // Whether the EBS volume is encrypted
-	VolumeSize          string `json:"volumeSize,omitempty"`          // The size of the EBS volume
-	VolumeType          string `json:"volumeType,omitempty"`          // The type of the EBS volume
+type NodeClassBlockDeviceSettings struct {
+	VolumeSize string `json:"volumeSize,omitempty"`
+	VolumeType string `json:"volumeType,omitempty"`
+
+	// +optional
+	// +kubebuilder:default=true
+	DeleteOnTermination bool `json:"deleteOnTermination,omitempty"` // Whether to delete the EBS volume on termination
+
+	// +optional
+	// +kubebuilder:default=false
+	Encrypted bool `json:"encrypted,omitempty"` // Whether the EBS volume is encrypted
+
 }
 
 // GPUNodeClassStatus defines the observed state of GPUNodeClass.

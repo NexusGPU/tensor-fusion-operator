@@ -12,7 +12,10 @@ const (
 
 	LabelKeyOwner = Domain + "/managed-by"
 
-	PoolIdentifierAnnotationKey = Domain + "/pool"
+	GPUNodePoolIdentifierLabelPrefix = Domain + "/pool/"
+	GPUNodePoolIdentifierLabelKey    = Domain + "/pool/%s"
+	NodeDeletionMark                 = Domain + "/should-delete"
+
 	TensorFusionEnabledLabelKey = Domain + "/enabled"
 	InitialGPUNodeSelector      = "nvidia.com/gpu.present=true"
 

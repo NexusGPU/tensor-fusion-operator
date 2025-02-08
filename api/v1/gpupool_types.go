@@ -122,7 +122,35 @@ type NodeProvisioner struct {
 	CPUTaints []Taint `json:"cpuTaints,omitempty"`
 	// +optional
 	CPULabels map[string]string `json:"cpuNodeLabels,omitempty"`
+
+	// +optional
+	// +kubebuilder:default="100"
+	// NodeProvisioner will start an virtual billing based on public pricing or customized pricing, if the VM's costs exceeded any budget constraints, the new VM will not be created, and alerts will be generated
+	Budget *PeriodicalBudget `json:"budget,omitempty"`
 }
+
+// The budget constraints in dollars
+type PeriodicalBudget struct {
+	// +kubebuilder:default="100"
+	BudgetPerDay string `json:"budgetPerDay,omitempty"`
+
+	// +kubebuilder:default="1000"
+	BudgetPerMonth string `json:"budgetPerMonth,omitempty"`
+
+	// +kubebuilder:default="3000"
+	BudgetPerQuarter string `json:"budgetPerQuarter,omitempty"`
+
+	// +kubebuilder:default=AlertOnly
+	BudgetExceedStrategy BudgetExceedStrategy `json:"budgetExceedStrategy,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=AlertOnly;AlertAndTerminateVM
+type BudgetExceedStrategy string
+
+const (
+	BudgetExceedStrategyAlertOnly           BudgetExceedStrategy = "AlertOnly"
+	BudgetExceedStrategyAlertAndTerminateVM BudgetExceedStrategy = "AlertAndTerminateVM"
+)
 
 // +kubebuilder:validation:Enum=Native;Karpenter
 type NodeProvisionerMode string
@@ -133,19 +161,37 @@ const (
 )
 
 type Requirement struct {
-	Key      string   `json:"key,omitempty"`
-	Operator string   `json:"operator,omitempty"`
-	Values   []string `json:"values,omitempty"`
+	// +kubebuilder:default=""
+	Key NodeRequirementKey `json:"key,omitempty"`
+
+	// +kubebuilder:default="In"
+	// +kubebuilder:validation:Enum=In;Exists;DoesNotExist;Gt;Lt
+	Operator corev1.NodeSelectorOperator `json:"operator,omitempty"`
+
+	Values []string `json:"values,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type
+type NodeRequirementKey string
+
+const (
+	NodeRequirementKeyInstanceType NodeRequirementKey = "node.kubernetes.io/instance-type"
+	NodeRequirementKeyArchitecture NodeRequirementKey = "kubernetes.io/arch"
+	NodeRequirementKeyOS           NodeRequirementKey = "kubernetes.io/os"
+	NodeRequirementKeyZone         NodeRequirementKey = "topology.kubernetes.io/zone"
+	NodeRequirementKeyCapacityType NodeRequirementKey = "karpenter.sh/capacity-type"
+)
+
 type Taint struct {
-	Effect string `json:"effect,omitempty"`
-	Key    string `json:"key,omitempty"`
-	Value  string `json:"value,omitempty"`
+	// +kubebuilder:default=NoSchedule
+	// +kubebuilder:validation:Enum=NoSchedule;NoExecute;PreferNoSchedule
+	Effect corev1.TaintEffect `json:"effect,omitempty"`
+	Key    string             `json:"key,omitempty"`
+	Value  string             `json:"value,omitempty"`
 }
 
 type NodeCompaction struct {
-	// +kubebuilder:default="30m"
+	// +kubebuilder:default="5m"
 	Period string `json:"period,omitempty"`
 }
 type NodeRollingUpdatePolicy struct {
@@ -333,6 +379,11 @@ type GPUPoolStatus struct {
 	// aggregated with interval
 	SavedCostsPerMonth       string `json:"savedCostsPerMonth,omitempty"`
 	PotentialSavingsPerMonth string `json:"potentialSavingsPerMonth,omitempty"`
+
+	// +kubebuilder:default=""
+	// If the budget is exceeded, the set value in comma separated string to indicate which period caused the exceeding.
+	// If this field is not empty, scheduler will not schedule new AI workloads and stop scaling-up check.
+	BudgetExceeded string `json:"budgetExceeded,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown

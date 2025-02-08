@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
@@ -84,10 +85,13 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	r.GpuPoolState.Set(pool.Name, &pool.Spec)
 
 	// TODO, any GPUNode changes trigger GPUPool reconcile, it should change the status, aggregate the total amount of resources, update current status
+	// THIS NEED TO MOVE INTO GPU NODE CONTROLLER, rather than POOL CONTROLLER
 	if err := r.startNodeDiscoverys(ctx, pool); err != nil {
 		return ctrl.Result{}, err
 	}
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
+	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
+
 	return ctrl.Result{}, nil
 }
 
@@ -97,16 +101,6 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 ) error {
 	log := log.FromContext(ctx)
 	log.Info("Starting node node discovery job")
-
-	// TODO: need to write a interval in go coroutine to check if node could be compacted like Karpenter, when it's ok to mark as destroying, change the status and trigger a reconcile
-	// if it's AutoSelect mode, stop all Pods on it, and let ClusterAutoscaler or Karpenter to delete the node
-	// if it's Provision mode, stop all Pods on it, and destroy the Node from cloud provider
-
-	// Strategy #1: check if any empty node can be deleted
-
-	// Strategy #2: check if whole Pool can be bin-packing into less nodes, check from low-priority to high-priority nodes one by one, if workloads could be moved to other nodes (using a simulated scheduler), evict it and mark cordoning, let scheduler to re-schedule
-
-	// Strategy #3: check if any node can be reduced to 1/2 size. for remaining nodes, check if allocated size < 1/2 * total size, if so, check if can buy smaller instance
 
 	podTmpl := &corev1.PodTemplate{}
 	err := json.Unmarshal(pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
@@ -178,12 +172,21 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tfv1.GPUPool{}).
 		Named("gpupool").
 		Watches(&tfv1.GPUNode{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-			// TODO: this watch should with predicate to avoid performance impact
+			requests := []reconcile.Request{}
+
 			node := obj.(*tfv1.GPUNode)
-			if poolName, exists := node.Annotations[constants.PoolIdentifierAnnotationKey]; exists {
-				return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: poolName}}}
+			for labelKey := range node.Labels {
+				if strings.HasPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix) {
+					tmp := strings.Split(labelKey, "/")
+					if len(tmp) != 3 {
+						continue
+					}
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{Name: tmp[2]},
+					})
+				}
 			}
-			return nil
+			return requests
 		})).
 		Complete(r)
 }

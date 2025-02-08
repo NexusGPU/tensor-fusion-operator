@@ -194,6 +194,12 @@ spec:
                     format: date-time
                     type: string
                 type: object
+              kubernetesNodeName:
+                description: the identifier of the kubernetes node, in nodeSelector
+                  mode, GPUNode name is the same as kubernetes node name because of
+                  it's owned by the Kubernetes node, while in node provisioning mode
+                  owned by the GPUNode, and K8S Node name is uncontrollable
+                type: string
               loadedModels:
                 items:
                   type: string
@@ -260,6 +266,7 @@ spec:
             - allocationDetails
             - availableTFlops
             - availableVRAM
+            - kubernetesNodeName
             - loadedModels
             - managedGPUs
             - phase

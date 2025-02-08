@@ -5,6 +5,7 @@
         "certmanager",
         "clientgoscheme",
         "clusterissuers",
+        "controllerutil",
         "crds",
         "cycjimmy",
         "finalizer",

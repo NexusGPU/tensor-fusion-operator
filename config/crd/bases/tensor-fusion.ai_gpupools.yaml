@@ -221,7 +221,7 @@ spec:
                   nodeCompaction:
                     properties:
                       period:
-                        default: 30m
+                        default: 5m
                         type: string
                     type: object
                   nodePoolRollingUpdatePolicy:
@@ -255,6 +255,29 @@ spec:
                       NodeProvisioner or NodeSelector, they are exclusive.
                       NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
                     properties:
+                      budget:
+                        default: "100"
+                        description: NodeProvisioner will start an virtual billing
+                          based on public pricing or customized pricing, if the VM's
+                          costs exceeded any budget constraints, the new VM will not
+                          be created, and alerts will be generated
+                        properties:
+                          budgetExceedStrategy:
+                            default: AlertOnly
+                            enum:
+                            - AlertOnly
+                            - AlertAndTerminateVM
+                            type: string
+                          budgetPerDay:
+                            default: "100"
+                            type: string
+                          budgetPerMonth:
+                            default: "1000"
+                            type: string
+                          budgetPerQuarter:
+                            default: "3000"
+                            type: string
+                        type: object
                       cpuNodeLabels:
                         additionalProperties:
                           type: string
@@ -263,8 +286,25 @@ spec:
                         items:
                           properties:
                             key:
+                              default: ""
+                              enum:
+                              - node.kubernetes.io/instance-type
+                              - kubernetes.io/arch
+                              - kubernetes.io/os
+                              - topology.kubernetes.io/zone
+                              - karpenter.sh/capacity-type
                               type: string
                             operator:
+                              default: In
+                              description: |-
+                                A node selector operator is the set of operators that can be used in
+                                a node selector requirement.
+                              enum:
+                              - In
+                              - Exists
+                              - DoesNotExist
+                              - Gt
+                              - Lt
                               type: string
                             values:
                               items:
@@ -276,6 +316,11 @@ spec:
                         items:
                           properties:
                             effect:
+                              default: NoSchedule
+                              enum:
+                              - NoSchedule
+                              - NoExecute
+                              - PreferNoSchedule
                               type: string
                             key:
                               type: string
@@ -291,8 +336,25 @@ spec:
                         items:
                           properties:
                             key:
+                              default: ""
+                              enum:
+                              - node.kubernetes.io/instance-type
+                              - kubernetes.io/arch
+                              - kubernetes.io/os
+                              - topology.kubernetes.io/zone
+                              - karpenter.sh/capacity-type
                               type: string
                             operator:
+                              default: In
+                              description: |-
+                                A node selector operator is the set of operators that can be used in
+                                a node selector requirement.
+                              enum:
+                              - In
+                              - Exists
+                              - DoesNotExist
+                              - Gt
+                              - Lt
                               type: string
                             values:
                               items:
@@ -304,6 +366,11 @@ spec:
                         items:
                           properties:
                             effect:
+                              default: NoSchedule
+                              enum:
+                              - NoSchedule
+                              - NoExecute
+                              - PreferNoSchedule
                               type: string
                             key:
                               type: string
@@ -673,6 +740,12 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              budgetExceeded:
+                default: ""
+                description: |-
+                  If the budget is exceeded, the set value in comma separated string to indicate which period caused the exceeding.
+                  If this field is not empty, scheduler will not schedule new AI workloads and stop scaling-up check.
+                type: string
               cluster:
                 type: string
               componentStatus:
