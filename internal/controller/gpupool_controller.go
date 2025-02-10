@@ -84,7 +84,8 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
-	if pool.Spec.NodeManagerConfig.NodeProvisioner != nil && pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative {
+	isProvisioningMode := pool.Spec.NodeManagerConfig.NodeProvisioner != nil && pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative
+	if isProvisioningMode {
 		if err := r.reconcilePoolCapacityWithProvisioner(ctx, pool); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -95,8 +96,10 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// TODO, any GPUNode changes trigger GPUPool reconcile, it should change the status, aggregate the total amount of resources, update current status
 	// THIS NEED TO MOVE INTO GPU NODE CONTROLLER, rather than POOL CONTROLLER
-	if err := r.startNodeDiscoverys(ctx, pool); err != nil {
-		return ctrl.Result{}, err
+	if !isProvisioningMode {
+		if err := r.startNodeDiscoverys(ctx, pool); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
@@ -111,6 +114,9 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 	log := log.FromContext(ctx)
 	log.Info("Starting node node discovery job")
 
+	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
+		return fmt.Errorf(`missing node discovery pod template in pool spec`)
+	}
 	podTmpl := &corev1.PodTemplate{}
 	err := json.Unmarshal(pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
 	if err != nil {

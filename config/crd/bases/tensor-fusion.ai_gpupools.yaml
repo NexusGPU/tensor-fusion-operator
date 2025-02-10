@@ -256,7 +256,6 @@ spec:
                       NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.
                     properties:
                       budget:
-                        default: "100"
                         description: NodeProvisioner will start an virtual billing
                           based on public pricing or customized pricing, if the VM's
                           costs exceeded any budget constraints, the new VM will not
@@ -286,7 +285,6 @@ spec:
                         items:
                           properties:
                             key:
-                              default: ""
                               enum:
                               - node.kubernetes.io/instance-type
                               - kubernetes.io/arch
@@ -337,7 +335,6 @@ spec:
                         items:
                           properties:
                             key:
-                              default: ""
                               enum:
                               - node.kubernetes.io/instance-type
                               - kubernetes.io/arch

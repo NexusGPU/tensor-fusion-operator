@@ -124,7 +124,6 @@ type NodeProvisioner struct {
 	CPULabels map[string]string `json:"cpuNodeLabels,omitempty"`
 
 	// +optional
-	// +kubebuilder:default="100"
 	// NodeProvisioner will start an virtual billing based on public pricing or customized pricing, if the VM's costs exceeded any budget constraints, the new VM will not be created, and alerts will be generated
 	Budget *PeriodicalBudget `json:"budget,omitempty"`
 }
@@ -161,7 +160,6 @@ const (
 )
 
 type Requirement struct {
-	// +kubebuilder:default=""
 	Key NodeRequirementKey `json:"key,omitempty"`
 
 	// +kubebuilder:default="In"
