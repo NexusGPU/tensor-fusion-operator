@@ -40,10 +40,16 @@ jobs:
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v3
-      - id: meta
+      - id: meta_operator
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-operator
+          tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
+      
+      - id: meta_node_discovery
+        uses: docker/metadata-action@v4
+        with:
+          images: tensorfusion/tensor-fusion-node-discovery
           tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
 
       - name: Login to DockerHub
@@ -59,6 +65,17 @@ jobs:
           push: true
           build-args: |
             CMD=operaotr
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta_operator.outputs.tags }}
+          labels: ${{ steps.meta_operator.outputs.labels }}
+          no-cache: true
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          build-args: |
+            CMD=operaotr
+          tags: ${{ steps.meta_node_discovery.outputs.tags }}
+          labels: ${{ steps.meta_node_discovery.outputs.labels }}
           no-cache: true
