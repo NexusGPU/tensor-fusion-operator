@@ -117,13 +117,17 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 		return fmt.Errorf("unmarshal pod template: %w", err)
 	}
 	// pool.Spec.NodeManagerConfig.NodeSelector
-	nodes := &corev1.NodeList{}
+	nodes := &tfv1.GPUNodeList{}
 	if err := r.Client.List(ctx, nodes); err != nil {
 		return fmt.Errorf("list nodes: %v", err)
 	}
 
-	for _, node := range nodes.Items {
-		matches, err := schedulingcorev1.MatchNodeSelectorTerms(&node, pool.Spec.NodeManagerConfig.NodeSelector)
+	for _, gpuNode := range nodes.Items {
+		node := &corev1.Node{}
+		if err := r.Client.Get(ctx, client.ObjectKeyFromObject(&gpuNode), node); err != nil {
+			return err
+		}
+		matches, err := schedulingcorev1.MatchNodeSelectorTerms(node, pool.Spec.NodeManagerConfig.NodeSelector)
 		if err != nil {
 			return err
 		}
