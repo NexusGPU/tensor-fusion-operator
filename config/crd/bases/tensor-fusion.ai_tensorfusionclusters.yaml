@@ -391,6 +391,8 @@ spec:
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
                                         - tensor-fusion.ai/gpu-arch
+                                        - tensor-fusion.ai/gpu-instance-family
+                                        - tensor-fusion.ai/gpu-instance-size
                                         type: string
                                       operator:
                                         default: In
@@ -441,6 +443,8 @@ spec:
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
                                         - tensor-fusion.ai/gpu-arch
+                                        - tensor-fusion.ai/gpu-instance-family
+                                        - tensor-fusion.ai/gpu-instance-size
                                         type: string
                                       operator:
                                         default: In

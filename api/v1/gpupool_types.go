@@ -169,7 +169,7 @@ type Requirement struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type;tensor-fusion.ai/gpu-arch
+// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type;tensor-fusion.ai/gpu-arch;tensor-fusion.ai/gpu-instance-family;tensor-fusion.ai/gpu-instance-size
 type NodeRequirementKey string
 
 const (
@@ -182,6 +182,9 @@ const (
 
 	// capacity-type is charging method, can be spot/preemptive or on-demand
 	NodeRequirementKeyCapacityType NodeRequirementKey = "karpenter.sh/capacity-type"
+
+	NodeRequirementKeyInstanceFamily NodeRequirementKey = "tensor-fusion.ai/gpu-instance-family"
+	NodeRequirementKeyInstanceSize   NodeRequirementKey = "karpenter.k8s.aws/gpu-instance-size"
 )
 
 type Taint struct {

@@ -70,8 +70,6 @@ spec:
                   httpTokens:
                     type: string
                 type: object
-              osImageFamily:
-                type: string
               osImageSelectorTerms:
                 items:
                   properties:
