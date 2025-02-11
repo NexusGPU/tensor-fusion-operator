@@ -130,7 +130,7 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 					Name:      hypervisorPodName,
 					Namespace: namespace,
 					Labels: map[string]string{
-						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelKey, poolName): "true",
+						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, poolName): "true",
 					},
 				},
 				Spec: *spec,

@@ -30,7 +30,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
@@ -123,9 +125,15 @@ func (r *GPUPoolReconciler) startNodeDiscoverys(
 		return fmt.Errorf("unmarshal pod template: %w", err)
 	}
 	// pool.Spec.NodeManagerConfig.NodeSelector
+	selector := labels.NewSelector()
+	poolReq, err := labels.NewRequirement(fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name), selection.DoubleEquals, []string{"false"})
+	if err != nil {
+		return fmt.Errorf("new GPUNodePoolIdentifier label seletor: %w", err)
+	}
+	selector = selector.Add(*poolReq)
 	nodes := &tfv1.GPUNodeList{}
-	if err := r.Client.List(ctx, nodes); err != nil {
-		return fmt.Errorf("list nodes: %v", err)
+	if err := r.Client.List(ctx, nodes, &client.ListOptions{LabelSelector: selector}); err != nil {
+		return fmt.Errorf("list gpunodes: %v", err)
 	}
 
 	for _, gpuNode := range nodes.Items {

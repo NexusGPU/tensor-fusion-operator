@@ -49,7 +49,7 @@ func (r *GPUPoolCompactionReconciler) checkNodeCompaction(ctx context.Context, p
 	// Strategy #1, terminate empty node
 	allNodes := &tfv1.GPUNodeList{}
 	if err := r.List(ctx, allNodes, client.MatchingLabels(map[string]string{
-		fmt.Sprintf(constants.GPUNodePoolIdentifierLabelKey, pool.Name): "true",
+		fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name): "true",
 	})); err != nil {
 		return fmt.Errorf("failed to list nodes : %w", err)
 	}
