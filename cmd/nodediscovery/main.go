@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
@@ -88,7 +89,7 @@ func main() {
 			ctrl.Log.Error(errors.New(nvml.ErrorString(ret)), "unable to get uuid of device", "index", i)
 			os.Exit(1)
 		}
-
+		uuid = strings.ToLower(uuid)
 		deviceName, ret := device.GetName()
 		if ret != nvml.SUCCESS {
 			ctrl.Log.Error(errors.New(nvml.ErrorString(ret)), "unable to get name of device", "index", i)
