@@ -279,6 +279,7 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&tfv1.GPUPool{}).
 		Named("gpupool").
+		Owns(&batchv1.Job{}).
 		Watches(&tfv1.GPUNode{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
 			requests := []reconcile.Request{}
 
