@@ -12,9 +12,16 @@ spec:
     listKind: SchedulingConfigTemplateList
     plural: schedulingconfigtemplates
     singular: schedulingconfigtemplate
-  scope: Namespaced
+  scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.placement.mode
+      name: Mode
+      type: string
+    - jsonPath: .spec.placement.allowLocalGPU
+      name: Allow Local GPU
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: SchedulingConfigTemplate is the Schema for the schedulingconfigtemplates
@@ -45,7 +52,7 @@ spec:
                 properties:
                   autoSetLimits:
                     description: layer 1 vertical auto-scaling, turbo burst to existing
-                      GPU cards fastly
+                      GPU cards quickly
                     properties:
                       evaluationPeriod:
                         type: string
@@ -73,7 +80,7 @@ spec:
                     type: object
                   autoSetReplicas:
                     description: layer 2 horizontal auto-scaling, scale up to more
-                      GPU cards if max limits threshod hit
+                      GPU cards if max limits threshold hit
                     properties:
                       enable:
                         type: boolean
@@ -83,7 +90,7 @@ spec:
                         type: string
                       scaleDownStep:
                         type: string
-                      scaleDownUpDownTime:
+                      scaleUpCoolDownTime:
                         type: string
                       scaleUpStep:
                         type: string
@@ -167,6 +174,7 @@ spec:
                 description: place the client or worker to best matched nodes
                 properties:
                   allowUsingLocalGPU:
+                    default: true
                     type: boolean
                   gpuFilters:
                     items:
@@ -184,7 +192,13 @@ spec:
                       type: object
                     type: array
                   mode:
+                    default: CompactFirst
+                    enum:
+                    - CompactFirst
+                    - LowLoadFirst
                     type: string
+                required:
+                - mode
                 type: object
               reBalancer:
                 description: |-
@@ -202,6 +216,8 @@ spec:
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                 type: object
+            required:
+            - placement
             type: object
           status:
             description: SchedulingConfigTemplateStatus defines the observed state

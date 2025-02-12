@@ -169,7 +169,7 @@ type Requirement struct {
 	Values []string `json:"values,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/zone;karpenter.sh/capacity-type;tensor-fusion.ai/gpu-arch;tensor-fusion.ai/gpu-instance-family;tensor-fusion.ai/gpu-instance-size
+// +kubebuilder:validation:Enum=node.kubernetes.io/instance-type;kubernetes.io/arch;kubernetes.io/os;topology.kubernetes.io/region;topology.kubernetes.io/zone;karpenter.sh/capacity-type;tensor-fusion.ai/gpu-arch;tensor-fusion.ai/gpu-instance-family;tensor-fusion.ai/gpu-instance-size
 type NodeRequirementKey string
 
 const (
@@ -177,14 +177,15 @@ const (
 	NodeRequirementKeyArchitecture    NodeRequirementKey = "kubernetes.io/arch"
 	NodeRequirementKeyGPUArchitecture NodeRequirementKey = "tensor-fusion.ai/gpu-arch"
 
-	NodeRequirementKeyOS   NodeRequirementKey = "kubernetes.io/os"
-	NodeRequirementKeyZone NodeRequirementKey = "topology.kubernetes.io/zone"
+	NodeRequirementKeyOS     NodeRequirementKey = "kubernetes.io/os"
+	NodeRequirementKeyRegion NodeRequirementKey = "topology.kubernetes.io/region"
+	NodeRequirementKeyZone   NodeRequirementKey = "topology.kubernetes.io/zone"
 
 	// capacity-type is charging method, can be spot/preemptive or on-demand
 	NodeRequirementKeyCapacityType NodeRequirementKey = "karpenter.sh/capacity-type"
 
 	NodeRequirementKeyInstanceFamily NodeRequirementKey = "tensor-fusion.ai/gpu-instance-family"
-	NodeRequirementKeyInstanceSize   NodeRequirementKey = "karpenter.k8s.aws/gpu-instance-size"
+	NodeRequirementKeyInstanceSize   NodeRequirementKey = "tensor-fusion.ai/gpu-instance-size"
 )
 
 type Taint struct {
@@ -363,11 +364,6 @@ type GPUPoolStatus struct {
 	AvailableTFlops resource.Quantity `json:"availableTFlops"`
 	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
-	// If using provisioner, GPU nodes could be outside of the K8S cluster.
-	// The GPUNodes custom resource will be created and deleted automatically.
-	// ProvisioningStatus is to track the status of those outside GPU nodes.
-	ProvisioningStatus PoolProvisioningStatus `json:"provisioningStatus"`
-
 	// when updating any component version or config, pool controller will perform rolling update.
 	// the status will be updated periodically, default to 5s, progress will be 0-100.
 	// when the progress is 100, the component version or config is fully updated.
@@ -388,6 +384,7 @@ type GPUPoolStatus struct {
 	// +kubebuilder:default=""
 	// If the budget is exceeded, the set value in comma separated string to indicate which period caused the exceeding.
 	// If this field is not empty, scheduler will not schedule new AI workloads and stop scaling-up check.
+	// TODO not implemented yet
 	BudgetExceeded string `json:"budgetExceeded,omitempty"`
 }
 
@@ -427,6 +424,7 @@ type PoolComponentStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
 
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
 // +kubebuilder:printcolumn:name="TFlops Oversubscription",type="string",JSONPath=".spec.capacityConfig.oversubscription.tflopsOversellRatio"
 // +kubebuilder:printcolumn:name="Mode",type="string",JSONPath=".status.mode"
 // +kubebuilder:printcolumn:name="Default Scheduling Strategy",type="string",JSONPath=".spec.schedulingConfigTemplate"

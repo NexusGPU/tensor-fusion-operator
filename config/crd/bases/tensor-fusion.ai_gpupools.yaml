@@ -15,6 +15,9 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
     - jsonPath: .spec.capacityConfig.oversubscription.tflopsOversellRatio
       name: TFlops Oversubscription
       type: string
@@ -289,6 +292,7 @@ spec:
                               - node.kubernetes.io/instance-type
                               - kubernetes.io/arch
                               - kubernetes.io/os
+                              - topology.kubernetes.io/region
                               - topology.kubernetes.io/zone
                               - karpenter.sh/capacity-type
                               - tensor-fusion.ai/gpu-arch
@@ -341,6 +345,7 @@ spec:
                               - node.kubernetes.io/instance-type
                               - kubernetes.io/arch
                               - kubernetes.io/os
+                              - topology.kubernetes.io/region
                               - topology.kubernetes.io/zone
                               - karpenter.sh/capacity-type
                               - tensor-fusion.ai/gpu-arch
@@ -849,22 +854,6 @@ spec:
                 type: string
               potentialSavingsPerMonth:
                 type: string
-              provisioningStatus:
-                description: |-
-                  If using provisioner, GPU nodes could be outside of the K8S cluster.
-                  The GPUNodes custom resource will be created and deleted automatically.
-                  ProvisioningStatus is to track the status of those outside GPU nodes.
-                properties:
-                  availableNodes:
-                    format: int32
-                    type: integer
-                  initializingNodes:
-                    format: int32
-                    type: integer
-                  terminatingNodes:
-                    format: int32
-                    type: integer
-                type: object
               readyNodes:
                 format: int32
                 type: integer
@@ -912,7 +901,6 @@ spec:
             - componentStatus
             - notReadyNodes
             - phase
-            - provisioningStatus
             - totalTFlops
             - totalVRAM
             - virtualTFlops

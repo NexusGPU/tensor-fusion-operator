@@ -81,18 +81,16 @@ spec:
                     type: string
                   params:
                     properties:
-                      accessKeyEnvVar:
-                        type: string
                       accessKeyPath:
-                        description: the secret of access key and secret key, must
-                          be mounted as env var or file path
+                        description: the secret of access key and secret key or config
+                          file, must be mounted as file path
+                        type: string
+                      configFile:
                         type: string
                       defaultRegion:
                         type: string
                       iamRole:
                         description: preferred IAM role since it's more secure
-                        type: string
-                      secretKeyEnvVar:
                         type: string
                       secretKeyPath:
                         type: string
@@ -388,6 +386,7 @@ spec:
                                         - node.kubernetes.io/instance-type
                                         - kubernetes.io/arch
                                         - kubernetes.io/os
+                                        - topology.kubernetes.io/region
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
                                         - tensor-fusion.ai/gpu-arch
@@ -440,6 +439,7 @@ spec:
                                         - node.kubernetes.io/instance-type
                                         - kubernetes.io/arch
                                         - kubernetes.io/os
+                                        - topology.kubernetes.io/region
                                         - topology.kubernetes.io/zone
                                         - karpenter.sh/capacity-type
                                         - tensor-fusion.ai/gpu-arch

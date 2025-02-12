@@ -14,7 +14,8 @@ type NodeCreationParam struct {
 	Zone         string
 	InstanceType string
 	NodeClass    *tfv1.GPUNodeClass
-	ExtraParams  map[string]string
+
+	ExtraParams map[string]string
 }
 
 type NodeIdentityParam struct {

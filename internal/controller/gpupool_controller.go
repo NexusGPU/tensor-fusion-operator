@@ -29,6 +29,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,8 @@ type GPUPoolReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools/finalizers,verbs=update
+
+// Reconcile GPU pools
 func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
@@ -89,34 +92,103 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	isProvisioningMode := pool.Spec.NodeManagerConfig != nil &&
 		pool.Spec.NodeManagerConfig.NodeProvisioner != nil &&
 		pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative
-	if isProvisioningMode {
-		if err := r.reconcilePoolCapacityWithProvisioner(ctx, pool); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
 
 	// sync the GPU Pool into memory, used by scheduler and mutation webhook
 	r.GpuPoolState.Set(pool.Name, &pool.Spec)
 
+	// Provisioning mode, check capacity and scale up if needed
+	if isProvisioningMode {
+		newNodeCreated, err := r.reconcilePoolCapacityWithProvisioner(ctx, pool)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// Set phase to updating and let GPUNode event trigger the check and update capacity loop, util all nodes are ready
+		if newNodeCreated {
+			pool.Status.Phase = tfv1.TensorFusionPoolPhaseUpdating
+			err = r.Client.Status().Update(ctx, pool)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
 	// TODO, any GPUNode changes trigger GPUPool reconcile, it should change the status, aggregate the total amount of resources, update current status
 	// THIS NEED TO MOVE INTO GPU NODE CONTROLLER, rather than POOL CONTROLLER
 	if !isProvisioningMode {
-		if err := r.startNodeDiscoverys(ctx, pool); err != nil {
+		if err := r.startNodeDiscovery(ctx, pool); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
 
+	if err := r.reconcilePoolCurrentCapacityAndReadiness(ctx, pool); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
-func (r *GPUPoolReconciler) startNodeDiscoverys(
+func (r *GPUPoolReconciler) reconcilePoolCurrentCapacityAndReadiness(ctx context.Context, pool *tfv1.GPUPool) error {
+	log := log.FromContext(ctx)
+
+	nodes := &tfv1.GPUNodeList{}
+	if err := r.Client.List(ctx, nodes); err != nil {
+		return fmt.Errorf("list nodes of Pool %s failed: %v", pool.Name, err)
+	}
+
+	log.Info("Calculate current capacity and readiness for pool", "name", pool.Name)
+
+	totalGPUs := int32(0)
+	readyNodes := 0
+	totalVRAM := resource.Quantity{}
+	virtualVRAM := resource.Quantity{}
+	totalTFlops := resource.Quantity{}
+	virtualTFlops := resource.Quantity{}
+
+	for _, node := range nodes.Items {
+		totalGPUs = totalGPUs + node.Status.TotalGPUs
+		totalVRAM.Add(node.Status.TotalVRAM)
+		totalTFlops.Add(node.Status.TotalTFlops)
+		if node.Status.Phase == tfv1.TensorFusionGPUNodePhaseRunning {
+			readyNodes++
+		}
+		virtualVRAM.Add(node.Status.VirtualVRAM)
+		virtualTFlops.Add(node.Status.VirtualTFlops)
+	}
+
+	pool.Status.TotalGPUs = totalGPUs
+	pool.Status.TotalNodes = int32(len(nodes.Items))
+	pool.Status.TotalVRAM = totalVRAM
+	pool.Status.TotalTFlops = totalTFlops
+
+	pool.Status.ReadyNodes = int32(readyNodes)
+	pool.Status.NotReadyNodes = int32(len(nodes.Items)) - pool.Status.ReadyNodes
+
+	pool.Status.VirtualTFlops = virtualTFlops
+	pool.Status.VirtualVRAM = virtualVRAM
+
+	if readyNodes == len(nodes.Items) {
+		pool.Status.Phase = tfv1.TensorFusionPoolPhaseRunning
+		log.Info("Pool is running, all nodes are ready", "name", pool.Name, "nodes", len(nodes.Items))
+	} else {
+		// set back to updating, wait GPUNode change triggering the pool change
+		pool.Status.Phase = tfv1.TensorFusionPoolPhasePending
+	}
+
+	if err := r.Client.Status().Update(ctx, pool); err != nil {
+		return fmt.Errorf("update pool status: %w", err)
+	}
+	return nil
+}
+
+func (r *GPUPoolReconciler) startNodeDiscovery(
 	ctx context.Context,
 	pool *tfv1.GPUPool,
 ) error {
 	log := log.FromContext(ctx)
-	log.Info("Starting node node discovery job")
+	log.Info("Starting node discovery job")
 
 	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
 		return fmt.Errorf(`missing node discovery pod template in pool spec`)

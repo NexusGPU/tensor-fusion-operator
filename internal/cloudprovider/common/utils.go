@@ -1,8 +1,11 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"math"
+	"os"
+	"strings"
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
@@ -10,12 +13,27 @@ import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// Avoid creating too many nodes at once
+const MAX_NODES_PER_RECONCILE_LOOP = 200
+
+func GetAccessKeyOrSecretFromPath(filePath string) (string, error) {
+	if filePath != "" {
+		bytes, err := os.ReadFile(filePath)
+		if err != nil {
+			return "", err
+		}
+		return strings.TrimSpace(string(bytes)), nil
+	}
+	return "", fmt.Errorf("no env var or file path provided")
+}
 
 // Pool config contains node requirements, nodeClass indicates some base template info for creating VM nodes, this func should output the list of VM to be created to meet TFlops and VRAM gap
 // Simple algorithm, try to find the instance type that best meets the gap
 // TODO: implement a more advanced algorithm to combine multiple instance types
-func CalculateLeastCostGPUNodes(provider types.GPUNodeProvider, cluster *tfv1.TensorFusionCluster, pool *tfv1.GPUPool, nodeClass *tfv1.GPUNodeClass, tflopsGap int64, vramGap int64) ([]types.NodeCreationParam, error) {
+func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvider, cluster *tfv1.TensorFusionCluster, pool *tfv1.GPUPool, nodeClass *tfv1.GPUNodeClass, tflopsGap int64, vramGap int64) ([]types.NodeCreationParam, error) {
 	if tflopsGap <= 0 && vramGap <= 0 {
 		return []types.NodeCreationParam{}, nil
 	}
@@ -25,9 +43,17 @@ func CalculateLeastCostGPUNodes(provider types.GPUNodeProvider, cluster *tfv1.Te
 	zones := []string{}
 	os := constants.GPUNodeOSLinux
 
+	// check region override
+	for _, req := range requirements {
+		if req.Key == tfv1.NodeRequirementKeyRegion {
+			region = req.Values[0]
+			break
+		}
+	}
+
 	eligibleInstances := getEligibleInstances(pool, region, provider)
 	if len(eligibleInstances) == 0 {
-		return []types.NodeCreationParam{}, nil
+		return nil, fmt.Errorf("no eligible instances types found, can not start creating nodes")
 	}
 
 	var bestInstance *types.GPUNodeInstanceInfo
@@ -42,7 +68,12 @@ func CalculateLeastCostGPUNodes(provider types.GPUNodeProvider, cluster *tfv1.Te
 		if req.Key == tfv1.NodeRequirementKeyCapacityType && req.Operator == corev1.NodeSelectorOpIn {
 			// user can specify other capacity types
 			preferredCapacityType = types.CapacityTypeEnum(req.Values[0])
+		} else if req.Key == tfv1.NodeRequirementKeyRegion && req.Operator == corev1.NodeSelectorOpIn {
+			// single pool can only leverage one region
+			region = req.Values[0]
 		} else if req.Key == tfv1.NodeRequirementKeyZone && req.Operator == corev1.NodeSelectorOpIn {
+			// single pool can use multiple zones
+			// TODO need balance the node number among zones, need maxScrew factor like Kubernetes, using simple random balancing as of now
 			zones = req.Values
 		} else if req.Key == tfv1.NodeRequirementKeyOS && req.Operator == corev1.NodeSelectorOpIn {
 			os = req.Values[0]
@@ -67,7 +98,7 @@ func CalculateLeastCostGPUNodes(provider types.GPUNodeProvider, cluster *tfv1.Te
 		}
 
 		tflopsRequired := math.Ceil(float64(tflopsGap) / float64(tflopsPerInstance))
-		vramRequired := math.Ceil(float64(vramGap) / float64(vramPerInstance))
+		vramRequired := math.Ceil(float64(vramGap) / float64(vramPerInstance) / float64(1024*1024*1024)) // convert GiB to bytes
 		numInstances := int64(math.Max(tflopsRequired, vramRequired))
 
 		totalCost := costPerHour * float64(numInstances)
@@ -82,6 +113,11 @@ func CalculateLeastCostGPUNodes(provider types.GPUNodeProvider, cluster *tfv1.Te
 
 	if bestInstance == nil {
 		return nil, fmt.Errorf("no eligible instances found")
+	}
+
+	if bestNumInstances > MAX_NODES_PER_RECONCILE_LOOP {
+		log.FromContext(ctx).Info("[Warn] Limiting the number of nodes to 200(default limit value)", "parsed number", bestNumInstances)
+		bestNumInstances = MAX_NODES_PER_RECONCILE_LOOP
 	}
 
 	nodes := make([]types.NodeCreationParam, 0, bestNumInstances)
@@ -110,11 +146,13 @@ func getEligibleInstances(pool *tfv1.GPUPool, region string, provider types.GPUN
 		meetsRequirements := true
 
 		for _, req := range pool.Spec.NodeManagerConfig.NodeProvisioner.GPURequirements {
+
 			if req.Key == tfv1.NodeRequirementKeyCapacityType {
 				continue
 			}
 
 			switch req.Key {
+
 			case tfv1.NodeRequirementKeyInstanceType:
 				if req.Operator == corev1.NodeSelectorOpIn {
 					if !contains(req.Values, instance.InstanceType) {

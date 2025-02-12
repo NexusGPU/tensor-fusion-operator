@@ -19,7 +19,7 @@ import (
 // Controller and trigger logic for abstract layer of node provisioning
 // TODO: implement the logic
 
-func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Context, pool *tfv1.GPUPool) error {
+func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Context, pool *tfv1.GPUPool) (bool, error) {
 	log := log.FromContext(ctx)
 	// check if min resource constraint is satisfied
 	shouldScaleUp := false
@@ -45,7 +45,7 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 		vramGap = minVRAM - totalVRAM
 
 		shouldScaleUp = (tflopsGap > 0) || (vramGap > 0)
-		if !shouldScaleUp {
+		if shouldScaleUp {
 			log.Info("Should scale up GPU node due gap of currentTotal <-> min capacity", "pool", pool.Name)
 		}
 
@@ -78,29 +78,29 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 	}
 
 	if !shouldScaleUp {
-		return nil
+		return false, nil
 	}
 
 	// create provisioner
 	provider, cluster, err := createProvisionerByCluster(ctx, pool, r)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	nodeClass := pool.Spec.NodeManagerConfig.NodeProvisioner.NodeClass
 	if nodeClass == "" {
-		return fmt.Errorf("failed to get node class for pool %s", pool.Name)
+		return false, fmt.Errorf("failed to get node class for pool %s", pool.Name)
 	}
 	var nodeClassObj tfv1.GPUNodeClass
 	err = r.Get(ctx, client.ObjectKey{Name: nodeClass}, &nodeClassObj)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// convert resource gap to least cost GPUNode creation param
-	gpuNodeParams, err := common.CalculateLeastCostGPUNodes(provider, cluster, pool, &nodeClassObj, tflopsGap, vramGap)
+	gpuNodeParams, err := common.CalculateLeastCostGPUNodes(ctx, provider, cluster, pool, &nodeClassObj, tflopsGap, vramGap)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	var wg sync.WaitGroup
@@ -124,9 +124,9 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 	wg.Wait()
 
 	if len(errList) > 0 {
-		return fmt.Errorf("failed to create nodes: %v", errList)
+		return false, fmt.Errorf("failed to create nodes: %v", errList)
 	}
-	return nil
+	return len(gpuNodeParams) > 0, nil
 }
 
 func createProvisionerByCluster(ctx context.Context, pool *tfv1.GPUPool, r *GPUPoolReconciler) (types.GPUNodeProvider, *tfv1.TensorFusionCluster, error) {

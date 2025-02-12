@@ -29,6 +29,7 @@ import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -50,6 +51,7 @@ type GPUNodeReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes/finalizers,verbs=update
+
 // Reconcile GPU nodes
 func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
@@ -150,4 +152,24 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 		}
 	}
 	return nil
+}
+
+// TODO after node info updated, trigger a reconcile loop to complement virtual capacity and other status from operator side
+func (r *GPUNodeReconciler) CalculateVirtualCapacity(node *tfv1.GPUNode, pool *tfv1.GPUPool) (resource.Quantity, resource.Quantity) {
+	diskSize, _ := node.Status.NodeInfo.DataDiskSize.AsInt64()
+	ramSize, _ := node.Status.NodeInfo.RAMSize.AsInt64()
+
+	virtualVRAM := node.Status.TotalVRAM.DeepCopy()
+	virtualTFlops := node.Status.TotalTFlops.DeepCopy()
+
+	virtualVRAM.Add(*resource.NewQuantity(
+		int64(float64(float64(diskSize)*float64(pool.Spec.CapacityConfig.Oversubscription.VRAMExpandToHostDisk)/100.0)),
+		resource.DecimalSI),
+	)
+	virtualVRAM.Add(*resource.NewQuantity(
+		int64(float64(float64(ramSize)*float64(pool.Spec.CapacityConfig.Oversubscription.VRAMExpandToHostMem)/100.0)),
+		resource.DecimalSI),
+	)
+	virtualTFlops.Mul(int64(pool.Spec.CapacityConfig.Oversubscription.TFlopsOversellRatio))
+	return virtualVRAM, virtualTFlops
 }

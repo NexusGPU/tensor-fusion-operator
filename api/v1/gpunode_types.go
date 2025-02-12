@@ -62,6 +62,9 @@ type GPUNodeStatus struct {
 	TotalTFlops resource.Quantity `json:"totalTFlops"`
 	TotalVRAM   resource.Quantity `json:"totalVRAM"`
 
+	VirtualTFlops resource.Quantity `json:"virtualTFlops"`
+	VirtualVRAM   resource.Quantity `json:"virtualVRAM"`
+
 	AvailableTFlops resource.Quantity `json:"availableTFlops"`
 	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
@@ -119,6 +122,10 @@ type GPUNodeInfo struct {
 	GPUCount         int32  `json:"gpuCount,omitempty"`
 	OperatingSystem  string `json:"operatingSystem,omitempty"`
 	Architecture     string `json:"architecture,omitempty"`
+
+	// Additional space for L1/L2 VRAM buffer
+	RAMSize      resource.Quantity `json:"ramSize,omitempty"`
+	DataDiskSize resource.Quantity `json:"dataDiskSize,omitempty"`
 }
 
 type NodeHypervisorStatus struct {
@@ -130,7 +137,14 @@ type NodeHypervisorStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:scope=Cluster
-
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
+// +kubebuilder:printcolumn:name="Total TFlops",type="string",JSONPath=".status.totalTFlops"
+// +kubebuilder:printcolumn:name="Total VRAM",type="string",JSONPath=".status.totalVRAM"
+// +kubebuilder:printcolumn:name="Virtual TFlops",type="string",JSONPath=".status.virtualTFlops"
+// +kubebuilder:printcolumn:name="Virtual VRAM",type="string",JSONPath=".status.virtualVRAM"
+// +kubebuilder:printcolumn:name="Available TFlops",type="string",JSONPath=".status.availableTFlops"
+// +kubebuilder:printcolumn:name="Available VRAM",type="string",JSONPath=".status.availableVRAM"
+// +kubebuilder:printcolumn:name="GPU Count",type="integer",JSONPath=".status.totalGPUs"
 // GPUNode is the Schema for the gpunodes API.
 type GPUNode struct {
 	metav1.TypeMeta   `json:",inline"`

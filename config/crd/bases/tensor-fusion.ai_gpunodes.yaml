@@ -14,7 +14,32 @@ spec:
     singular: gpunode
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.totalTFlops
+      name: Total TFlops
+      type: string
+    - jsonPath: .status.totalVRAM
+      name: Total VRAM
+      type: string
+    - jsonPath: .status.virtualTFlops
+      name: Virtual TFlops
+      type: string
+    - jsonPath: .status.virtualVRAM
+      name: Virtual VRAM
+      type: string
+    - jsonPath: .status.availableTFlops
+      name: Available TFlops
+      type: string
+    - jsonPath: .status.availableVRAM
+      name: Available VRAM
+      type: string
+    - jsonPath: .status.totalGPUs
+      name: GPU Count
+      type: integer
+    name: v1
     schema:
       openAPIV3Schema:
         description: GPUNode is the Schema for the gpunodes API.
@@ -215,6 +240,12 @@ spec:
                 properties:
                   architecture:
                     type: string
+                  dataDiskSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   gpuCount:
                     format: int32
                     type: integer
@@ -235,6 +266,13 @@ spec:
                     type: string
                   osImage:
                     type: string
+                  ramSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Additional space for L1/L2 VRAM buffer
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                 type: object
               observedGeneration:
                 format: int64
@@ -265,6 +303,18 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              virtualTFlops:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              virtualVRAM:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
             required:
             - allocationDetails
             - availableTFlops
@@ -276,6 +326,8 @@ spec:
             - totalGPUs
             - totalTFlops
             - totalVRAM
+            - virtualTFlops
+            - virtualVRAM
             type: object
         type: object
     served: true

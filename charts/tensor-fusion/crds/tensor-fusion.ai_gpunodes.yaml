@@ -14,7 +14,32 @@ spec:
     singular: gpunode
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.totalTFlops
+      name: Total TFlops
+      type: string
+    - jsonPath: .status.totalVRAM
+      name: Total VRAM
+      type: string
+    - jsonPath: .status.virtualTFlops
+      name: Virtual TFlops
+      type: string
+    - jsonPath: .status.virtualVRAM
+      name: Virtual VRAM
+      type: string
+    - jsonPath: .status.availableTFlops
+      name: Available TFlops
+      type: string
+    - jsonPath: .status.availableVRAM
+      name: Available VRAM
+      type: string
+    - jsonPath: .status.totalGPUs
+      name: GPU Count
+      type: integer
+    name: v1
     schema:
       openAPIV3Schema:
         description: GPUNode is the Schema for the gpunodes API.
@@ -39,6 +64,8 @@ spec:
           spec:
             description: GPUNodeSpec defines the desired state of GPUNode.
             properties:
+              costPerHour:
+                type: string
               gpuCardIndices:
                 description: |-
                   if not all GPU cards should be used, specify the GPU card indices, default to empty,
@@ -47,16 +74,85 @@ spec:
                   type: integer
                 type: array
               manageMode:
+                default: AutoSelect
+                enum:
+                - Manual
+                - AutoSelect
+                - Provisioned
                 type: string
             type: object
           status:
             description: GPUNodeStatus defines the observed state of GPUNode.
             properties:
+              allocationDetails:
+                description: Allocation details is for node compaction, and calculate
+                  used apps
+                items:
+                  properties:
+                    limits:
+                      properties:
+                        tflops:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Tera floating point operations per second
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        vram:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: VRAM is short for Video memory, namely GPU
+                            RAM
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                      type: object
+                    namespace:
+                      type: string
+                    podID:
+                      type: string
+                    podName:
+                      type: string
+                    qos:
+                      type: string
+                    requests:
+                      properties:
+                        tflops:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Tera floating point operations per second
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        vram:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: VRAM is short for Video memory, namely GPU
+                            RAM
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                      type: object
+                    workload:
+                      type: string
+                  required:
+                  - limits
+                  - namespace
+                  - requests
+                  type: object
+                type: array
               availableTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               availableVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
@@ -123,11 +219,17 @@ spec:
                     format: date-time
                     type: string
                 type: object
+              kubernetesNodeName:
+                description: the identifier of the kubernetes node, in nodeSelector
+                  mode, GPUNode name is the same as kubernetes node name because of
+                  it's owned by the Kubernetes node, while in node provisioning mode
+                  owned by the GPUNode, and K8S Node name is uncontrollable
+                type: string
               loadedModels:
                 items:
                   type: string
                 type: array
-              managedGPUResourceIDs:
+              managedGPUDeviceIDs:
                 items:
                   type: string
                 type: array
@@ -138,6 +240,12 @@ spec:
                 properties:
                   architecture:
                     type: string
+                  dataDiskSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   gpuCount:
                     format: int32
                     type: integer
@@ -147,27 +255,79 @@ spec:
                     type: string
                   hostname:
                     type: string
+                  instanceID:
+                    description: only set when node is managed by TensorFusion
+                    type: string
                   ip:
                     type: string
-                  kernalVersion:
+                  kernelVersion:
                     type: string
                   operatingSystem:
                     type: string
                   osImage:
                     type: string
+                  ramSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Additional space for L1/L2 VRAM buffer
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                 type: object
+              observedGeneration:
+                format: int64
+                type: integer
               phase:
-                description: TensorFusionClusterPhase represents the phase of the
-                  TensorFusionCluster resource.
+                default: Pending
+                enum:
+                - Pending
+                - Migrating
+                - Running
+                - Succeeded
+                - Failed
+                - Unknown
+                - Destroying
                 type: string
               totalGPUs:
                 format: int32
                 type: integer
               totalTFlops:
-                format: int32
-                type: integer
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
               totalVRAM:
-                type: string
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              virtualTFlops:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              virtualVRAM:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+            required:
+            - allocationDetails
+            - availableTFlops
+            - availableVRAM
+            - kubernetesNodeName
+            - loadedModels
+            - managedGPUs
+            - phase
+            - totalGPUs
+            - totalTFlops
+            - totalVRAM
+            - virtualTFlops
+            - virtualVRAM
             type: object
         type: object
     served: true

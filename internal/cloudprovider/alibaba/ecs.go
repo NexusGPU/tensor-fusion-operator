@@ -6,12 +6,13 @@ import (
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
-
+	common "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/common"
 	types "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
-
-	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
+
+var cachedClient *ecs.Client
 
 type AliyunGPUNodeProvider struct {
 	client *ecs.Client
@@ -21,18 +22,21 @@ func NewAliyunGPUNodeProvider(config tfv1.ComputingVendorConfig) (AliyunGPUNodeP
 
 	var provider AliyunGPUNodeProvider
 
+	if cachedClient != nil {
+		provider.client = cachedClient
+		return provider, nil
+	}
+
 	if config.AuthType != tfv1.AuthTypeAccessKey {
 		return provider, fmt.Errorf("unsupported auth type for alibaba cloud: %s", config.AuthType)
 	}
-	ak, err := utils.GetAccessKeyOrSecretFromEnvOrPath(
-		config.Params.AccessKeyEnvVar,
+	ak, err := common.GetAccessKeyOrSecretFromPath(
 		config.Params.AccessKeyPath,
 	)
 	if err != nil {
 		return provider, err
 	}
-	sk, err := utils.GetAccessKeyOrSecretFromEnvOrPath(
-		config.Params.SecretKeyEnvVar,
+	sk, err := common.GetAccessKeyOrSecretFromPath(
 		config.Params.SecretKeyPath,
 	)
 	if err != nil {
@@ -43,17 +47,25 @@ func NewAliyunGPUNodeProvider(config tfv1.ComputingVendorConfig) (AliyunGPUNodeP
 	if err != nil {
 		return provider, fmt.Errorf("failed to create ECS client: %w", err)
 	}
+
 	provider.client = client
+
+	if err := provider.TestConnection(); err != nil {
+		return provider, err
+	}
+
+	cachedClient = client
+
 	return provider, nil
 }
 
 func (p AliyunGPUNodeProvider) TestConnection() error {
 	request := ecs.CreateDescribeRegionsRequest()
-	response, err := p.client.DescribeRegions(request)
+	_, err := p.client.DescribeRegions(request)
 	if err != nil {
 		return fmt.Errorf("Can not connect to Aliyun ECS API: %v", err)
 	}
-	fmt.Printf("Successfully connected to Aliyun ECS. Available regions: %v\n", response.Regions.Region)
+	fmt.Printf("Successfully connected to Aliyun ECS. Available regions got")
 	return nil
 }
 
@@ -68,7 +80,21 @@ func (p AliyunGPUNodeProvider) CreateNode(ctx context.Context, param *types.Node
 	}
 	request.InstanceType = param.InstanceType
 	request.InstanceName = param.NodeName
+	request.RegionId = param.Region
 	request.Amount = "1"
+
+	// Handle general nodeClass params which is commonly used in all cloud vendors
+	if err := handleNodeClassParams(request, &nodeClass); err != nil {
+		return nil, err
+	}
+
+	// Handle extra params
+	capacityType := param.ExtraParams[string(tfv1.NodeRequirementKeyCapacityType)]
+	if capacityType != "" && capacityType != string(types.CapacityTypeOnDemand) {
+		// Convert from Spot/OnDemand to each cloud vendor's equivalent
+		request.SpotStrategy = "SpotAsPriceGo"
+		request.SpotDuration = requests.NewInteger(0)
+	}
 
 	tag := []ecs.RunInstancesTag{
 		{Key: "managed-by", Value: "tensor-fusion.ai"},
@@ -142,4 +168,9 @@ func (p AliyunGPUNodeProvider) GetNodeStatus(ctx context.Context, param *types.N
 		PublicIP:   publicIP,
 	}
 	return status, nil
+}
+
+func handleNodeClassParams(request *ecs.RunInstancesRequest, nodeClass *tfv1.GPUNodeClassSpec) error {
+	// TODO: handle nodeClass.SecurityGroupSelectorTerms and nodeClass.SubnetSelectorTerms and others
+	return nil
 }

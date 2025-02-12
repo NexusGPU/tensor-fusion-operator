@@ -5,10 +5,84 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/finalizers
+  - pods/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes/status
+  - pods/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - configmaps
+  - daemonsets
+  - deployments
+  - namespaces
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses
+  - gpunodes
+  - gpupools
   - gpus
   - schedulingconfigtemplates
+  - tensorfusionclusters
+  - tensorfusionconnections
   verbs:
   - create
   - delete
@@ -20,15 +94,25 @@ rules:
 - apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses/finalizers
+  - gpunodes/finalizers
+  - gpupools/finalizers
   - gpus/finalizers
   - schedulingconfigtemplates/finalizers
+  - tensorfusionclusters/finalizers
+  - tensorfusionconnections/finalizers
   verbs:
   - update
 - apiGroups:
   - tensor-fusion.ai
   resources:
+  - gpunodeclasses/status
+  - gpunodes/status
+  - gpupools/status
   - gpus/status
   - schedulingconfigtemplates/status
+  - tensorfusionclusters/status
+  - tensorfusionconnections/status
   verbs:
   - get
   - patch

@@ -35,6 +35,8 @@ type GPUNodeClassReconciler struct {
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodeclasses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodeclasses/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodeclasses/finalizers,verbs=update
+
+// Reconcile GPU node classes
 func (r *GPUNodeClassReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 	return ctrl.Result{}, nil

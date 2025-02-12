@@ -143,16 +143,21 @@ const (
 )
 
 type ComputingVendorParams struct {
+	// +optional
 	DefaultRegion string `json:"defaultRegion,omitempty"` // Region for the computing vendor.
 
-	// the secret of access key and secret key, must be mounted as env var or file path
-	AccessKeyPath   string `json:"accessKeyPath,omitempty"`
-	SecretKeyPath   string `json:"secretKeyPath,omitempty"`
-	AccessKeyEnvVar string `json:"accessKeyEnvVar,omitempty"`
-	SecretKeyEnvVar string `json:"secretKeyEnvVar,omitempty"`
+	// the secret of access key and secret key or config file, must be mounted as file path
+	// +optional
+	AccessKeyPath string `json:"accessKeyPath,omitempty"`
+	// +optional
+	SecretKeyPath string `json:"secretKeyPath,omitempty"`
 
 	// preferred IAM role since it's more secure
+	// +optional
 	IAMRole string `json:"iamRole,omitempty"`
+
+	// +optional
+	ConfigFile string `json:"configFile,omitempty"`
 }
 
 // StorageVendorConfig defines Postgres database with extensions for timeseries storage and other resource aggregation results, system events and diagnostics reports etc.

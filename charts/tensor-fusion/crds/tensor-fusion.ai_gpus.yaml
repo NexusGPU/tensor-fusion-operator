@@ -14,7 +14,29 @@ spec:
     singular: gpu
   scope: Cluster
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.gpuModel
+      name: GPU Model
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.capacity.flops
+      name: Total TFlops
+      type: string
+    - jsonPath: .status.capacity.vram
+      name: Total VRAM
+      type: string
+    - jsonPath: .status.available.flops
+      name: Available TFlops
+      type: string
+    - jsonPath: .status.available.vram
+      name: Available VRAM
+      type: string
+    - jsonPath: .status.uuid
+      name: Device UUID
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: GPU is the Schema for the gpus API.
@@ -75,16 +97,34 @@ spec:
                 - tflops
                 - vram
                 type: object
+              gpuModel:
+                type: string
+              message:
+                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: The host match selector to schedule worker pods
                 type: object
+              phase:
+                default: Pending
+                enum:
+                - Pending
+                - Provisioning
+                - Running
+                - Unknown
+                - Destroying
+                - Migrating
+                type: string
               uuid:
                 type: string
             required:
             - available
             - capacity
+            - gpuModel
+            - message
             - nodeSelector
+            - phase
             - uuid
             type: object
         type: object

@@ -31,3 +31,5 @@ cmd/__debug*
 cmd/*/__debug*
 
 prompts/*
+
+tmp*

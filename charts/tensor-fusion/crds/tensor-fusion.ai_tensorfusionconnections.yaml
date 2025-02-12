@@ -40,6 +40,8 @@ spec:
           spec:
             description: TensorFusionConnectionSpec defines the desired state of TensorFusionConnection.
             properties:
+              poolName:
+                type: string
               resources:
                 properties:
                   limits:
@@ -83,6 +85,7 @@ spec:
                 - requests
                 type: object
             required:
+            - poolName
             - resources
             type: object
           status:
