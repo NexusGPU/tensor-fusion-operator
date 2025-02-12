@@ -65,6 +65,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Build and push node discovery
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          file: dockerfile/node-disvoery.Dockerfile
+          tags: ${{ steps.meta_node_discovery.outputs.tags }}
+          labels: ${{ steps.meta_node_discovery.outputs.labels }}
+          no-cache: true
+
       - name: Build and push operator
         uses: docker/build-push-action@v3
         with:
@@ -75,12 +85,3 @@ jobs:
           labels: ${{ steps.meta_operator.outputs.labels }}
           no-cache: true
 
-      - name: Build and push node discovery
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: true
-          file: dockerfile/node-disvoery.Dockerfile
-          tags: ${{ steps.meta_node_discovery.outputs.tags }}
-          labels: ${{ steps.meta_node_discovery.outputs.labels }}
-          no-cache: true
