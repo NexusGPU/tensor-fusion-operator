@@ -32,7 +32,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish_image:
+  publish_operator_image:
     needs:
       - release
     if: needs.release.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
@@ -47,13 +47,44 @@ jobs:
         id: set_tag
         run: echo "tag=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - id: meta_operator
+      - id: meta
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-operator
           tags: ${{ github.event_name == 'workflow_dispatch' && steps.set_tag.outputs.tag || 'type=semver,pattern={{version}},value=${{needs.release.outputs.version}}' }}
+    
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push operator
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          file: dockerfile/operator.Dockerfile
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          no-cache: true
+
+  publish_node_discovery_image:
+    needs:
+      - release
+    if: needs.release.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v3
       
-      - id: meta_node_discovery
+      - name: Set Tag
+        if: github.event_name == 'workflow_dispatch'
+        id: set_tag
+        run: echo "tag=dev-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+     
+      - id: meta
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-node-discovery
@@ -71,17 +102,6 @@ jobs:
           context: .
           push: true
           file: dockerfile/node-disvoery.Dockerfile
-          tags: ${{ steps.meta_node_discovery.outputs.tags }}
-          labels: ${{ steps.meta_node_discovery.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           no-cache: true
-
-      - name: Build and push operator
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: true
-          file: dockerfile/operator.Dockerfile
-          tags: ${{ steps.meta_operator.outputs.tags }}
-          labels: ${{ steps.meta_operator.outputs.labels }}
-          no-cache: true
-
