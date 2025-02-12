@@ -65,5 +65,8 @@ func NewKubeReporter(namespace string) (Reporter, error) {
 
 func (r *KubeReporter) Report(ctx context.Context, obj client.Object, f controllerutil.MutateFn) error {
 	_, err := controllerutil.CreateOrUpdate(ctx, r.client, obj, f)
-	return err
+	if err != nil {
+		return fmt.Errorf("create or update err: %w", err)
+	}
+	return r.client.Status().Update(ctx, obj)
 }
