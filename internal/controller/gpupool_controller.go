@@ -86,7 +86,9 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
-	isProvisioningMode := pool.Spec.NodeManagerConfig.NodeProvisioner != nil && pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative
+	isProvisioningMode := pool.Spec.NodeManagerConfig != nil &&
+		pool.Spec.NodeManagerConfig.NodeProvisioner != nil &&
+		pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative
 	if isProvisioningMode {
 		if err := r.reconcilePoolCapacityWithProvisioner(ctx, pool); err != nil {
 			return ctrl.Result{}, err

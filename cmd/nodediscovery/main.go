@@ -9,7 +9,9 @@ import (
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/reporter"
+	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -19,9 +21,11 @@ import (
 func main() {
 	var dryRun bool
 	var hostname string
-
+	var gpuInfoConfig string
 	flag.BoolVar(&dryRun, "dry-run", false, "dry run mode")
 	flag.StringVar(&hostname, "hostname", "", "hostname")
+	flag.StringVar(&gpuInfoConfig, "gpu-info-config", "", "specify the path to gpuInfoConfig file")
+
 	if hostname == "" {
 		hostname = os.Getenv("HOSTNAME")
 	}
@@ -33,6 +37,12 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	gpuinfos, err := config.LoadGpuInfoFromFile(gpuInfoConfig)
+	if err != nil {
+		ctrl.Log.Error(err, "unable to read gpuInfoConfig file")
+		os.Exit(1)
+	}
 
 	ret := nvml.Init()
 	if ret != nvml.SUCCESS {
@@ -90,15 +100,21 @@ func main() {
 			ctrl.Log.Error(errors.New(nvml.ErrorString(ret)), "unable to get memory info of device", "index", i)
 			os.Exit(1)
 		}
+		info, ok := lo.Find(gpuinfos, func(info config.GpuInfo) bool {
+			return info.FullModelName == deviceName
+		})
+		tflops := info.Fp16TFlops
+		if !ok {
+			tflops = resource.MustParse("0")
+		}
 		gpu := &tfv1.GPU{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: uuid,
 			},
 			Status: tfv1.GPUStatus{
-				Capacity: tfv1.Resource{
-					Vram: resource.MustParse(fmt.Sprintf("%dKi", memInfo.Total)),
-					// TODO: compute Tflops based on GPU model
-					Tflops: resource.MustParse("100"),
+				Capacity: &tfv1.Resource{
+					Vram:   resource.MustParse(fmt.Sprintf("%dKi", memInfo.Total)),
+					Tflops: tflops,
 				},
 				UUID:     uuid,
 				GPUModel: deviceName,
@@ -112,7 +128,11 @@ func main() {
 			// keep Available field
 			available := gpu.Status.Available
 			gpu.Status = gpuCopy.Status
-			gpu.Status.Available = available
+			if available != nil {
+				gpu.Status.Available = available
+			} else {
+				gpu.Status.Available = gpu.Status.Capacity
+			}
 			return nil
 		}); err != nil {
 			ctrl.Log.Error(err, "failed to report GPU", "gpu", gpu)

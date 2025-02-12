@@ -12,8 +12,8 @@ const (
 
 	LabelKeyOwner = Domain + "/managed-by"
 
-	GPUNodePoolIdentifierLabelPrefix = Domain + "/pool/"
-	GPUNodePoolIdentifierLabelFormat = Domain + "/pool/%s"
+	GPUNodePoolIdentifierLabelPrefix = Domain + "/pool-"
+	GPUNodePoolIdentifierLabelFormat = Domain + "/pool-%s"
 	NodeDeletionMark                 = Domain + "/should-delete"
 
 	TensorFusionEnabledLabelKey = Domain + "/enabled"

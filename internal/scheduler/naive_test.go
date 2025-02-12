@@ -14,7 +14,7 @@ func createGPU(name string, tflops, vram string) *tfv1.GPU {
 			Name: name,
 		},
 		Status: tfv1.GPUStatus{
-			Available: tfv1.Resource{
+			Available: &tfv1.Resource{
 				Tflops: resource.MustParse(tflops),
 				Vram:   resource.MustParse(vram),
 			},
@@ -189,11 +189,11 @@ func TestNaiveScheduler_Release(t *testing.T) {
 					Name: "gpu1",
 				},
 				Status: tfv1.GPUStatus{
-					Capacity: tfv1.Resource{
+					Capacity: &tfv1.Resource{
 						Tflops: resource.MustParse("100"),
 						Vram:   resource.MustParse("16Gi"),
 					},
-					Available: tfv1.Resource{
+					Available: &tfv1.Resource{
 						Tflops: resource.MustParse("100"),
 						Vram:   resource.MustParse("16Gi"),
 					},
@@ -218,11 +218,11 @@ func TestNaiveScheduler_Release(t *testing.T) {
 					Name: "gpu1",
 				},
 				Status: tfv1.GPUStatus{
-					Capacity: tfv1.Resource{
+					Capacity: &tfv1.Resource{
 						Tflops: resource.MustParse("100"),
 						Vram:   resource.MustParse("16Gi"),
 					},
-					Available: tfv1.Resource{
+					Available: &tfv1.Resource{
 						Tflops: resource.MustParse("100"),
 						Vram:   resource.MustParse("16Gi"),
 					},

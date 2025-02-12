@@ -26,8 +26,8 @@ type GPUStatus struct {
 	// +kubebuilder:default=Pending
 	Phase TensorFusionGPUPhase `json:"phase"`
 
-	Capacity  Resource `json:"capacity"`
-	Available Resource `json:"available"`
+	Capacity  *Resource `json:"capacity"`
+	Available *Resource `json:"available"`
 
 	UUID string `json:"uuid"`
 

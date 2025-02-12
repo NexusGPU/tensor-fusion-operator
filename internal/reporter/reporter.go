@@ -27,6 +27,9 @@ func NewDryRunReporter() Reporter {
 
 func (r *DryRunReporter) Report(ctx context.Context, obj client.Object, f controllerutil.MutateFn) error {
 	log := log.FromContext(ctx)
+	if err := f(); err != nil {
+		return err
+	}
 	objYaml, err := yaml.Marshal(obj)
 	if err != nil {
 		return err

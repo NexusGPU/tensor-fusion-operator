@@ -86,11 +86,11 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 				NodeSelector: map[string]string{
 					"kubernetes.io/hostname": "mock-node",
 				},
-				Capacity: tfv1.Resource{
+				Capacity: &tfv1.Resource{
 					Tflops: resource.MustParse("2"),
 					Vram:   resource.MustParse("2Gi"),
 				},
-				Available: tfv1.Resource{
+				Available: &tfv1.Resource{
 					Tflops: resource.MustParse("2"),
 					Vram:   resource.MustParse("2Gi"),
 				},

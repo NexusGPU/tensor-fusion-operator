@@ -93,7 +93,7 @@ func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node,
 		ObjectMeta: metav1.ObjectMeta{
 			Name: node.Name,
 			Labels: map[string]string{
-				fmt.Sprint(constants.GPUNodePoolIdentifierLabelFormat, poolName): "true",
+				fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, poolName): "true",
 			},
 		},
 		Spec: tfv1.GPUNodeSpec{
