@@ -202,6 +202,7 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 	if err != nil {
 		return fmt.Errorf("unmarshal pod template: %w", err)
 	}
+
 	selector := labels.NewSelector()
 	poolReq, err := labels.NewRequirement(fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name), selection.DoubleEquals, []string{"true"})
 	if err != nil {

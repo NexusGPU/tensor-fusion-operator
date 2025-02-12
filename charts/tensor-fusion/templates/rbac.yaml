@@ -67,10 +67,21 @@ rules:
   - batch
   resources:
   - cronjobs
-  - jobs
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - tensor-fusion.ai

@@ -128,4 +128,6 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&corev1.Node{}, builder.WithPredicates(p)).
 		Named("node").
 		Complete(r)
+	// When Pool changed, all nodes should re-generated, delete not matched ones
+	//
 }

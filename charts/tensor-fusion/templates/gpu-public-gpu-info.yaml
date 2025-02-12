@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "tensor-fusion.fullname" . }}-public-gpu-info
+  name: {{ .Release.Name }}-public-gpu-info
   namespace: {{ include "tensor-fusion.namespace" . }}
   labels:
     {{- include "tensor-fusion.labels" . | nindent 4 }}
@@ -22,81 +22,96 @@ data:
     
     # Turing Architecture Series
     - model: T4
+      fullModelName: "Tesla T4"
       vendor: NVIDIA
       costPerHour: 0.53
       fp16TFlops: 65
 
     # Ampere Architecture Series
     - model: A100_SXM4
+      fullModelName: "A100 SXM4"
       vendor: NVIDIA
       costPerHour: 1.89
       fp16TFlops: 312
     
     - model: A100_PCIe
+      fullModelName: "A100 PCIe"
       vendor: NVIDIA
       costPerHour: 1.64
       fp16TFlops: 312
 
     - model: A10
+      fullModelName: "A10"
       vendor: NVIDIA
       costPerHour: 0.9
       fp16TFlops: 125
 
     # A10G has less CUDA core than A10, but with RT cores for rendering case
     - model: A10G
+      fullModelName: "A10G"
       vendor: NVIDIA
       costPerHour: 0.75 # from lambda labs
       fp16TFlops: 125
 
     - model: A40
+      fullModelName: "A40"
       vendor: NVIDIA
       costPerHour: 0.44
       fp16TFlops: 125
     
     - model: RTX3090
+      fullModelName: "RTX3090"
       vendor: NVIDIA
       costPerHour: 0.43
       fp16TFlops: 143
 
     # Ada Lovelace Architecture Series  
     - model: L4
+      fullModelName: "L4"
       vendor: NVIDIA
       costPerHour: 0.43
       fp16TFlops: 121
 
     - model: L40
+      fullModelName: "L40"
       vendor: NVIDIA
       costPerHour: 0.86 # should be a bit cheaper than L40s
       fp16TFlops: 362
 
     - model: L40s
+      fullModelName: "L40s"
       vendor: NVIDIA
       costPerHour: 0.86
       fp16TFlops: 362
 
     - model: RTX4090
+      fullModelName: "RTX4090"
       vendor: NVIDIA
       costPerHour: 0.69
       fp16TFlops: 330
 
     # Hopper Architecture Series
     - model: H100_SXM4
+      fullModelName: "H100 SXM4"
       vendor: NVIDIA
       costPerHour: 2.99
       fp16TFlops: 989
     
     - model: H100_PCIe
+      fullModelName: "H100 PCIe"
       vendor: NVIDIA
       costPerHour: 2.39
       fp16TFlops: 835
    
     # Blackwell Architecture Series
     - model: B200_SXM4
+      fullModelName: "B200 SXM4"
       vendor: NVIDIA
       costPerHour: 10.99 # unknown price,on-request
       fp16TFlops: 2250
 
     - model: RTX5090
+      fullModelName: "RTX5090"
       vendor: NVIDIA
       costPerHour: 2.99
       fp16TFlops: 838
