@@ -190,6 +190,10 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 	log := log.FromContext(ctx)
 	log.Info("Starting node discovery job")
 
+	if pool.Spec.NodeManagerConfig == nil || pool.Spec.NodeManagerConfig.NodeSelector == nil {
+		log.Info("missing NodeManagerConfig.nodeSelector config in pool spec, skipped")
+		return nil
+	}
 	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
 		return fmt.Errorf(`missing node discovery pod template in pool spec`)
 	}
@@ -198,9 +202,8 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 	if err != nil {
 		return fmt.Errorf("unmarshal pod template: %w", err)
 	}
-	// pool.Spec.NodeManagerConfig.NodeSelector
 	selector := labels.NewSelector()
-	poolReq, err := labels.NewRequirement(fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name), selection.DoubleEquals, []string{"false"})
+	poolReq, err := labels.NewRequirement(fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name), selection.DoubleEquals, []string{"true"})
 	if err != nil {
 		return fmt.Errorf("new GPUNodePoolIdentifier label seletor: %w", err)
 	}
@@ -261,8 +264,9 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 					if err := r.Create(ctx, job); err != nil {
 						return fmt.Errorf("create node discovery job %w", err)
 					}
+				} else {
+					return fmt.Errorf("create node job %w", err)
 				}
-				return fmt.Errorf("create node job %w", err)
 			}
 		}
 	}

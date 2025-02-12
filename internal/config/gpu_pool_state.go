@@ -76,6 +76,21 @@ type MockGpuPoolState struct {
 }
 
 var MockGpuPoolSpec = tfv1.GPUPoolSpec{
+	NodeManagerConfig: &tfv1.NodeManagerConfig{
+		NodeSelector: &corev1.NodeSelector{
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{
+				{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
+						{
+							Key:      "mock-label",
+							Operator: "In",
+							Values:   []string{"true"},
+						},
+					},
+				},
+			},
+		},
+	},
 	ComponentConfig: &tfv1.ComponentConfig{
 		NodeDiscovery: &tfv1.NodeDiscoveryConfig{
 			PodTemplate: &runtime.RawExtension{
@@ -83,6 +98,7 @@ var MockGpuPoolSpec = tfv1.GPUPoolSpec{
 					corev1.PodTemplate{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
+								RestartPolicy:                 corev1.RestartPolicyOnFailure,
 								TerminationGracePeriodSeconds: ptr.To[int64](0),
 								Containers: []corev1.Container{
 									{
