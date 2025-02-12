@@ -82,7 +82,7 @@ jobs:
           context: .
           push: true
           build-args: |
-            CMD=operator
+            CMD=nodediscovery
           tags: ${{ steps.meta_node_discovery.outputs.tags }}
           labels: ${{ steps.meta_node_discovery.outputs.labels }}
           no-cache: true
