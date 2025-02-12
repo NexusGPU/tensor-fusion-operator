@@ -8,12 +8,12 @@ on:
 
 jobs:
   release:
+    if: github.event_name == 'push'
     permissions:
-      #  to create release tags (cycjimmy/semantic-release-action)
+      # to create release tags (cycjimmy/semantic-release-action)
       contents: write
       issues: write
       pull-requests: write
-      
     runs-on: ubuntu-latest
     outputs:
       published: ${{ steps.semantic.outputs.new_release_published }}
@@ -32,25 +32,31 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish_image:
-    needs:
+    needs: 
       - release
-    if: needs.release.outputs.published == 'true'
+    if: needs.release.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       image_digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v3
+      
+      - name: Set Tag
+        if: github.event_name == 'workflow_dispatch'
+        id: set_tag
+        run: echo "::set-output name=tag::$(git rev-parse --short HEAD)"
+
       - id: meta_operator
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-operator
-          tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
+          tags: ${{ github.event_name == 'workflow_dispatch' && steps.set_tag.outputs.tag || 'type=semver,pattern={{version}},value=${{needs.release.outputs.version}}' }}
       
       - id: meta_node_discovery
         uses: docker/metadata-action@v4
         with:
           images: tensorfusion/tensor-fusion-node-discovery
-          tags: type=semver,pattern={{version}},value=${{needs.release.outputs.version}}
+          tags: ${{ github.event_name == 'workflow_dispatch' && steps.set_tag.outputs.tag || 'type=semver,pattern={{version}},value=${{needs.release.outputs.version}}' }}
 
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -58,24 +64,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and push operator
         uses: docker/build-push-action@v3
         with:
           context: .
           push: true
           build-args: |
-            CMD=operaotr
+            CMD=operator
           tags: ${{ steps.meta_operator.outputs.tags }}
           labels: ${{ steps.meta_operator.outputs.labels }}
           no-cache: true
 
-      - name: Build and push
+      - name: Build and push node discovery
         uses: docker/build-push-action@v3
         with:
           context: .
           push: true
           build-args: |
-            CMD=operaotr
+            CMD=operator
           tags: ${{ steps.meta_node_discovery.outputs.tags }}
           labels: ${{ steps.meta_node_discovery.outputs.labels }}
           no-cache: true
