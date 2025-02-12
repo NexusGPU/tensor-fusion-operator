@@ -8,7 +8,6 @@ on:
 
 jobs:
   release:
-    if: github.event_name == 'push'
     permissions:
       # to create release tags (cycjimmy/semantic-release-action)
       contents: write
@@ -20,8 +19,10 @@ jobs:
       version: ${{ steps.semantic.outputs.new_release_version }}
     steps:
       - uses: actions/checkout@v3
+        if: github.event_name == 'push'
 
       - name: Semantic Release
+        if: github.event_name == 'push'
         id: semantic
         uses: cycjimmy/semantic-release-action@v4
         with:
@@ -32,7 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish_image:
-    needs: 
+    needs:
       - release
     if: needs.release.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
