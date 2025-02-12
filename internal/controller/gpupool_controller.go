@@ -284,13 +284,10 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 			node := obj.(*tfv1.GPUNode)
 			for labelKey := range node.Labels {
-				if strings.HasPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix) {
-					tmp := strings.Split(labelKey, "/")
-					if len(tmp) != 3 {
-						continue
-					}
+				poolName, ok := strings.CutPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix)
+				if ok {
 					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{Name: tmp[2]},
+						NamespacedName: types.NamespacedName{Name: poolName},
 					})
 				}
 			}

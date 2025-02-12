@@ -71,7 +71,6 @@ var _ = Describe("GPUPool Controller", func() {
 					Name: nodeNamespacedName.Name,
 					Labels: map[string]string{
 						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, resourceName): "true",
-						"mock-label": "true",
 					},
 				},
 				Spec: tfv1.GPUNodeSpec{
