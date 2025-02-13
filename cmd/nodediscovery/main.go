@@ -11,17 +11,20 @@ import (
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/reporter"
 	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
 	var dryRun bool
 	var hostname string
+
 	var gpuInfoConfig string
 	flag.BoolVar(&dryRun, "dry-run", false, "dry run mode")
 	flag.StringVar(&hostname, "hostname", "", "hostname")
@@ -30,6 +33,8 @@ func main() {
 	if hostname == "" {
 		hostname = os.Getenv("HOSTNAME")
 	}
+
+	gpuNodeName := os.Getenv(constants.NodeDiscoveryReportGPUNodeEnvName)
 
 	opts := zap.Options{
 		Development: true,
@@ -129,6 +134,11 @@ func main() {
 				},
 			},
 		}
+		_ = controllerutil.SetControllerReference(&tfv1.GPUNode{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: gpuNodeName,
+			},
+		}, gpu, reporter.Scheme)
 
 		gpuCopy := gpu.DeepCopy()
 		if err := r.Report(ctx, gpu, func() error {
@@ -159,9 +169,9 @@ func main() {
 
 	if err := r.Report(ctx, &tfv1.GPUNode{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: hostname,
+			Name: gpuNodeName,
 		},
-		Status: ns,
+		Status: *ns,
 	}, func() error { return nil }); err != nil {
 		ctrl.Log.Error(err, "failed to report GPUNode")
 		os.Exit(1)

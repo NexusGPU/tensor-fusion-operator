@@ -65,6 +65,7 @@ type TensorFusionClusterStatus struct {
 	NotReadyGPUPools []string `json:"notReadyGPUPools"`
 
 	// +kubebuilder:default=0
+	//
 	RetryCount int64 `json:"retryCount"`
 
 	// calculated every 5m average
@@ -78,6 +79,8 @@ type TensorFusionClusterStatus struct {
 	// aggregated with interval
 	SavedCostsPerMonth       string `json:"savedCostsPerMonth,omitempty"`
 	PotentialSavingsPerMonth string `json:"potentialSavingsPerMonth,omitempty"`
+
+	CloudVendorConfigHash string `json:"cloudVendorConfigHash,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Pending;Running;Updating;Destroying;Unknown
@@ -123,7 +126,7 @@ const (
 	AuthTypeServiceAccountRole AuthTypeEnum = "serviceAccountRole"
 )
 
-// +kubebuilder:validation:Enum=aws;lambda-labs;gcp;azure;oracle-oci;ibm;openshift;vultr;together-ai;aliyun;nvidia;tencent;runpod
+// +kubebuilder:validation:Enum=aws;lambda-labs;gcp;azure;oracle-oci;ibm;openshift;vultr;together-ai;aliyun;nvidia;tencent;runpod;mock
 type ComputingVendorName string
 
 const (
@@ -140,6 +143,9 @@ const (
 	ComputingVendorNvidia     ComputingVendorName = "nvidia"
 	ComputingVendorTencent    ComputingVendorName = "tencent"
 	ComputingVendorRunPod     ComputingVendorName = "runpod"
+
+	// This is not unit/integration testing only, no cloud provider is involved
+	ComputingVendorMock ComputingVendorName = "mock"
 )
 
 type ComputingVendorParams struct {

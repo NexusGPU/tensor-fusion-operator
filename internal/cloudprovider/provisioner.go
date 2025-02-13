@@ -8,6 +8,7 @@ import (
 
 	aliyun "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/alibaba"
 	aws "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/aws"
+	mock "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/mock"
 )
 
 func GetProvider(config tfv1.ComputingVendorConfig) (*types.GPUNodeProvider, error) {
@@ -18,6 +19,8 @@ func GetProvider(config tfv1.ComputingVendorConfig) (*types.GPUNodeProvider, err
 		provider, err = aws.NewAWSGPUNodeProvider(config)
 	case "aliyun":
 		provider, err = aliyun.NewAliyunGPUNodeProvider(config)
+	case "mock":
+		provider, err = mock.NewMockGPUNodeProvider(config)
 	default:
 		return nil, fmt.Errorf("unsupported cloud provider: %s", config.Type)
 	}

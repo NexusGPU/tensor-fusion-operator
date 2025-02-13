@@ -82,3 +82,6 @@ const (
 	ProvisionerLabelKey        = "tensor-fusion.ai/node-provisioner"
 	ProvisionerNamePlaceholder = "__GPU_NODE_RESOURCE_NAME__"
 )
+const (
+	NodeDiscoveryReportGPUNodeEnvName = "NODE_DISCOVERY_REPORT_GPU_NODE"
+)

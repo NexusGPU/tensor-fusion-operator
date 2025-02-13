@@ -131,45 +131,49 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 						constants.LabelKeyOwner:        pool.Name,
 						constants.LabelKeyClusterOwner: cluster.Name,
 						constants.LabelKeyNodeClass:    nodeClass,
+
+						// to be compatible with nodeSelector mode, allow GPUNode controller to start HyperVisor pod
+						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name): pool.Name,
 					},
 				},
 				Spec: tfv1.GPUNodeSpec{
 					ManageMode:  tfv1.GPUNodeManageModeProvisioned,
 					CostPerHour: strconv.FormatFloat(costPerHour, 'f', 6, 64),
 				},
-				Status: &tfv1.GPUNodeStatus{
+				Status: tfv1.GPUNodeStatus{
 					TotalTFlops: node.TFlopsOffered,
 					TotalVRAM:   node.VRAMOffered,
 					TotalGPUs:   node.GPUDeviceOffered,
 				},
 			}
-			controllerutil.SetControllerReference(pool, gpuNodeRes, r.Scheme)
+			_ = controllerutil.SetControllerReference(pool, gpuNodeRes, r.Scheme)
 			err := r.Client.Create(ctx, gpuNodeRes)
 			if err != nil {
 				errList = append(errList, err)
 				return
 			}
 			// Update GPUNode status to set the resource quantity
-			if err := r.Client.Status().Update(ctx, gpuNodeRes); err != nil {
-				errList = append(errList, err)
-				return
-			}
+			// gpuNodeRes.Status =
+			// if err := r.Client.Status().Update(ctx, gpuNodeRes); err != nil {
+			// 	errList = append(errList, err)
+			// 	return
+			// }
 
-			// Create node on cloud provider
-			status, err := provider.CreateNode(ctx, &node)
-			if err != nil {
-				errList = append(errList, err)
-				return
-			}
+			// // Create node on cloud provider
+			// status, err := provider.CreateNode(ctx, &node)
+			// if err != nil {
+			// 	errList = append(errList, err)
+			// 	return
+			// }
 
-			// Update GPUNode status about the cloud vendor info
-			// To match GPUNode - K8S node, the --node-label in Kubelet is MUST-have, like Karpenter, it force set userdata to add a provisionerId label, k8s node controller then can set its ownerReference to the GPUNode
-			gpuNodeRes.Status.NodeInfo.IP = status.PrivateIP
-			gpuNodeRes.Status.NodeInfo.InstanceID = status.InstanceID
-			gpuNodeRes.Status.NodeInfo.Region = node.Region
-			r.Client.Status().Update(ctx, gpuNodeRes)
+			// // Update GPUNode status about the cloud vendor info
+			// // To match GPUNode - K8S node, the --node-label in Kubelet is MUST-have, like Karpenter, it force set userdata to add a provisionerId label, k8s node controller then can set its ownerReference to the GPUNode
+			// gpuNodeRes.Status.NodeInfo.IP = status.PrivateIP
+			// gpuNodeRes.Status.NodeInfo.InstanceID = status.InstanceID
+			// gpuNodeRes.Status.NodeInfo.Region = node.Region
+			// r.Client.Status().Update(ctx, gpuNodeRes)
 
-			r.Recorder.Eventf(pool, corev1.EventTypeNormal, "GPUNodeCreated", "Created node: %s, IP: %s", status.InstanceID, status.PrivateIP)
+			// r.Recorder.Eventf(pool, corev1.EventTypeNormal, "GPUNodeCreated", "Created node: %s, IP: %s", status.InstanceID, status.PrivateIP)
 		}(node)
 	}
 

@@ -14,6 +14,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var Scheme = runtime.NewScheme()
+
+func init() {
+	utilruntime.Must(tfv1.AddToScheme(Scheme))
+}
+
 type Reporter interface {
 	Report(ctx context.Context, obj client.Object, f controllerutil.MutateFn) error
 }
@@ -48,10 +54,9 @@ func NewKubeReporter(namespace string) (Reporter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("find cluster kubeConfig %w", err)
 	}
-	scheme := runtime.NewScheme()
-	utilruntime.Must(tfv1.AddToScheme(scheme))
+
 	client, err := client.New(config, client.Options{
-		Scheme: scheme,
+		Scheme: Scheme,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create kubeClient %w", err)
@@ -68,5 +73,5 @@ func (r *KubeReporter) Report(ctx context.Context, obj client.Object, f controll
 	if err != nil {
 		return fmt.Errorf("create or update err: %w", err)
 	}
-	return r.client.Status().Update(ctx, obj)
+	return r.client.Status().Patch(ctx, obj, client.Merge)
 }

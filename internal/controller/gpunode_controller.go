@@ -87,10 +87,13 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if err != nil {
 				return err
 			}
-			(*provider).TerminateNode(ctx, &types.NodeIdentityParam{
+			err = (*provider).TerminateNode(ctx, &types.NodeIdentityParam{
 				InstanceID: node.Status.NodeInfo.InstanceID,
 				Region:     node.Status.NodeInfo.Region,
 			})
+			if err != nil {
+				return err
+			}
 
 		}
 		return nil
@@ -158,6 +161,14 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 				},
 				Spec: *spec,
 			}
+
+			if newPod.Spec.Tolerations == nil {
+				newPod.Spec.Tolerations = []corev1.Toleration{}
+			}
+			newPod.Spec.Tolerations = append(newPod.Spec.Tolerations, corev1.Toleration{
+				Key:      "NoSchedule",
+				Operator: corev1.TolerationOpExists,
+			})
 
 			e := controllerutil.SetControllerReference(node, newPod, r.Scheme)
 			if e != nil {

@@ -5,11 +5,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	common "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/common"
 	types "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
@@ -197,8 +199,8 @@ func handleNodeClassAndExtraParams(request *ecs.RunInstancesRequest, param *type
 	request.InternetChargeType = "PayByTraffic"
 	request.Description = "GPU node managed by TensorFusion NodeClass: " + param.NodeClass.Name
 
-	// Add user data
-	request.UserData = base64.StdEncoding.EncodeToString([]byte(nodeClass.UserData))
+	// Add user data, replace placeholder is very important, so that to build the mapping between GPUNode and real Kubernetes node
+	request.UserData = base64.StdEncoding.EncodeToString([]byte(strings.ReplaceAll(nodeClass.UserData, constants.ProvisionerNamePlaceholder, param.NodeName)))
 
 	// Handle extra params
 	capacityType := param.ExtraParams[string(tfv1.NodeRequirementKeyCapacityType)]

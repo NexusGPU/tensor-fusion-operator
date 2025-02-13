@@ -2,7 +2,11 @@ package utils
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"math"
 	"math/rand/v2"
 	"os"
 	"time"
@@ -19,8 +23,6 @@ var ErrNextLoop = errors.New("stop this loop and return the associated Result ob
 
 // ErrTerminateLoop is not a real error. It forces the current reconciliation loop to stop
 var ErrTerminateLoop = errors.New("stop this loop and do not requeue")
-
-var MaxReconcileDelay = 10 * time.Minute
 
 func HandleFinalizer[T client.Object](ctx context.Context, obj T, r client.Client, deleteHook func(context.Context, T) error) (bool, error) {
 	// Check if object is being deleted
@@ -52,13 +54,29 @@ func HandleFinalizer[T client.Object](ctx context.Context, obj T, r client.Clien
 }
 
 func CalculateExponentialBackoffWithJitter(retryCount int64) time.Duration {
-	baseDelay := 5 * time.Second
-	backoffFactor := time.Duration(1<<(retryCount+1)) * baseDelay
-	jitter := time.Duration(rand.Float64()*0.2*float64(backoffFactor)) * time.Second
-	totalDelay := backoffFactor + jitter
-	if totalDelay > MaxReconcileDelay {
-		totalDelay = MaxReconcileDelay
+	const (
+		baseDelay  = 3 * time.Second
+		maxDelay   = 60 * time.Second
+		factor     = 1.5
+		maxRetries = 10
+	)
+
+	if retryCount > maxRetries {
+		retryCount = maxRetries
 	}
+
+	backoff := float64(baseDelay) * math.Pow(factor, float64(retryCount))
+
+	jitter := rand.Float64() * backoff
+
+	totalDelay := time.Duration(jitter)
+	if totalDelay < baseDelay {
+		totalDelay = baseDelay
+	}
+	if totalDelay > maxDelay {
+		totalDelay = maxDelay
+	}
+
 	return totalDelay
 }
 
@@ -69,4 +87,10 @@ func CurrentNamespace() string {
 		namespace = envNamespace
 	}
 	return namespace
+}
+
+func GetObjectHash(obj any) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(fmt.Sprintf("%v", obj)))
+	return hex.EncodeToString(hasher.Sum(nil))
 }

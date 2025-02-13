@@ -33,54 +33,73 @@ func (tfc *TensorFusionCluster) SetAsPending() {
 	})
 }
 
-func (tfc *TensorFusionCluster) SetAsFailed(err error) {
-	tfc.Status.Phase = constants.PhaseFailed
+func (tfc *TensorFusionCluster) SetAsUnknown(err error) bool {
+	changed := tfc.Status.Phase != constants.PhaseUnknown
 
-	meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
-		Type:    constants.ConditionStatusTypeReady,
-		Status:  metav1.ConditionFalse,
-		Message: err.Error(),
-		Reason:  "Failed",
-	})
-}
-
-func (tfc *TensorFusionCluster) SetAsUnknown(err error) {
 	tfc.Status.Phase = constants.PhaseUnknown
 
-	meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
+	readyChanged := meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
 		Type:    constants.ConditionStatusTypeReady,
 		Status:  metav1.ConditionFalse,
 		Message: err.Error(),
 		Reason:  "UnknownState",
 	})
+	if readyChanged {
+		changed = true
+	}
+	return changed
 }
 
-func (tfc *TensorFusionCluster) SetAsUpdating(conditions ...metav1.Condition) {
+func (tfc *TensorFusionCluster) SetAsUpdating(conditions ...metav1.Condition) bool {
 	tfc.Status.Phase = constants.PhaseUpdating
 
-	meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
+	changed := false
+	readyChanged := meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
 		Type:   constants.ConditionStatusTypeReady,
 		Status: metav1.ConditionFalse,
 		Reason: "ResourcesUpdated",
 	})
+	if readyChanged {
+		changed = true
+	}
 
 	for _, condition := range conditions {
-		meta.SetStatusCondition(&tfc.Status.Conditions, condition)
+		if condition.Reason == "" {
+			condition.Reason = "StillChecking"
+		}
+		condChanged := meta.SetStatusCondition(&tfc.Status.Conditions, condition)
+		if condChanged {
+			changed = true
+		}
 	}
+	return changed
 }
 
-func (tfc *TensorFusionCluster) SetAsReady(conditions ...metav1.Condition) {
+func (tfc *TensorFusionCluster) SetAsReady(conditions ...metav1.Condition) bool {
+	changed := tfc.Status.Phase != constants.PhaseRunning
+
 	tfc.Status.Phase = constants.PhaseRunning
 
-	meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
+	readyChanged := meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
 		Type:   constants.ConditionStatusTypeReady,
 		Status: metav1.ConditionTrue,
 		Reason: "CheckPassed",
 	})
 
-	for _, condition := range conditions {
-		meta.SetStatusCondition(&tfc.Status.Conditions, condition)
+	if readyChanged {
+		changed = true
 	}
+
+	for _, condition := range conditions {
+		if condition.Reason == "" {
+			condition.Reason = "CheckPassed"
+		}
+		condChanged := meta.SetStatusCondition(&tfc.Status.Conditions, condition)
+		if condChanged {
+			changed = true
+		}
+	}
+	return changed
 }
 
 func (tfc *TensorFusionCluster) RefreshStatus(ownedPools []GPUPool) {

@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
@@ -39,9 +40,11 @@ import (
 	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -106,13 +109,16 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
+			if err := r.reconcilePoolCurrentCapacityAndReadiness(ctx, pool); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 		}
 	}
 
-	// TODO, any GPUNode changes trigger GPUPool reconcile, it should change the status, aggregate the total amount of resources, update current status
-	// THIS NEED TO MOVE INTO GPU NODE CONTROLLER, rather than POOL CONTROLLER
 	if !isProvisioningMode {
+		// TODO: move GPUNode CR creation here, rather than node_controller
+		// TODO: move the node discovery job to the GPUNode controller
 		if err := r.startNodeDiscovery(ctx, pool); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -243,6 +249,25 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 						},
 					},
 				})
+			// allow job to run at any taint Nodes that marked as NoSchedule
+			if templateCopy.Spec.Tolerations == nil {
+				templateCopy.Spec.Tolerations = []corev1.Toleration{}
+			}
+			templateCopy.Spec.Tolerations = append(templateCopy.Spec.Tolerations, corev1.Toleration{
+				Key:      "NoSchedule",
+				Operator: corev1.TolerationOpExists,
+			})
+
+			if len(templateCopy.Spec.Containers) > 0 {
+				if len(templateCopy.Spec.Containers[0].Env) == 0 {
+					templateCopy.Spec.Containers[0].Env = []corev1.EnvVar{}
+				}
+				templateCopy.Spec.Containers[0].Env = append(templateCopy.Spec.Containers[0].Env, corev1.EnvVar{
+					Name:  constants.NodeDiscoveryReportGPUNodeEnvName,
+					Value: gpuNode.Name,
+				})
+			}
+
 			// create node-discovery job
 			job := &batchv1.Job{
 				ObjectMeta: metav1.ObjectMeta{
@@ -274,7 +299,7 @@ func (r *GPUPoolReconciler) startNodeDiscovery(
 // SetupWithManager sets up the controller with the Manager.
 func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tfv1.GPUPool{}).
+		For(&tfv1.GPUPool{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("gpupool").
 		Owns(&batchv1.Job{}).
 		Watches(&tfv1.GPUNode{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {

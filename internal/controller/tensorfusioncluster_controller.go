@@ -22,14 +22,18 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	controllerutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	utils "github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +79,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Error(err, "Failed to get TensorFusionCluster")
 		return ctrl.Result{}, err
 	}
+	originalStatus := tfc.Status.DeepCopy()
 
 	deleted, err := utils.HandleFinalizer(ctx, tfc, r.Client, func(context context.Context, tfc *tfv1.TensorFusionCluster) error {
 		log.Info("TensorFusionCluster is being deleted", "name", tfc.Name)
@@ -89,7 +94,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if tfc.Status.Phase == "" || tfc.Status.Phase == constants.PhaseUnknown {
 		tfc.SetAsPending()
-		if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
+		if err := r.updateTFClusterStatus(ctx, tfc, originalStatus); err != nil {
 			return ctrl.Result{}, err
 		}
 		// Next loop to make sure the custom resources are created
@@ -97,7 +102,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// reconcile GPUPool
-	poolChanged, err := r.mustReconcileGPUPool(ctx, tfc)
+	poolChanged, err := r.reconcileGPUPool(ctx, tfc)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -106,7 +111,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// reconcile TSDB
-	tsdbChanged, err := r.mustReconcileTimeSeriesDatabase(ctx, tfc)
+	tsdbChanged, err := r.reconcileTimeSeriesDatabase(ctx, tfc)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -115,7 +120,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// reconcile CloudVendorConnection
-	cloudConnectionChanged, err := r.mustReconcileCloudVendorConnection(ctx, tfc)
+	cloudConnectionChanged, err := r.reconcileCloudVendorConnection(ctx, tfc)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -123,8 +128,8 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 		tfc.SetAsUpdating()
 	}
 
-	if tfc.Status.Phase == constants.PhaseUpdating {
-		if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
+	if poolChanged || tsdbChanged || cloudConnectionChanged {
+		if err := r.updateTFClusterStatus(ctx, tfc, originalStatus); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
@@ -141,7 +146,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 			// store additional check result for each component
 			tfc.SetAsUpdating(conditions...)
 
-			if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
+			if err := r.updateTFClusterStatus(ctx, tfc, originalStatus); err != nil {
 				return ctrl.Result{}, err
 			}
 			delay := utils.CalculateExponentialBackoffWithJitter(tfc.Status.RetryCount)
@@ -154,7 +159,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 				return ctrl.Result{}, err
 			}
 			tfc.RefreshStatus(gpupools)
-			if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
+			if err := r.updateTFClusterStatus(ctx, tfc, originalStatus); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -168,7 +173,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 	tfc.SetAsReady()
 	tfc.RefreshStatus(gpupools)
-	if err := r.updateTFClusterStatus(ctx, tfc); err != nil {
+	if err := r.updateTFClusterStatus(ctx, tfc, originalStatus); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -185,17 +190,50 @@ func (r *TensorFusionClusterReconciler) mustListOwnedGPUPools(ctx context.Contex
 	return gpupoolsList.Items, nil
 }
 
-func (r *TensorFusionClusterReconciler) mustReconcileTimeSeriesDatabase(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
+func (r *TensorFusionClusterReconciler) reconcileTimeSeriesDatabase(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
 	// TODO: Not implemented yet
 	return false, nil
 }
 
-func (r *TensorFusionClusterReconciler) mustReconcileCloudVendorConnection(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
-	// TODO: Not implemented yet
+func (r *TensorFusionClusterReconciler) reconcileCloudVendorConnection(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
+	// tfc.Spec.ComputingVendor.Type
+	if (tfc.Spec.ComputingVendor == nil) || (tfc.Spec.ComputingVendor.Type == "") {
+		return false, nil
+	}
+
+	cfgHash := utils.GetObjectHash(tfc.Spec.ComputingVendor)
+	if tfc.Status.CloudVendorConfigHash == "" || tfc.Status.CloudVendorConfigHash != cfgHash {
+		// test the cloud vendor connection only when config changed
+		provider, err := cloudprovider.GetProvider(*tfc.Spec.ComputingVendor)
+		if err != nil {
+			return false, err
+		}
+		err = (*provider).TestConnection()
+		if err != nil {
+			tfc.SetAsUpdating(metav1.Condition{
+				Type:    constants.ConditionStatusTypeCloudVendorConnection,
+				Status:  metav1.ConditionFalse,
+				Message: err.Error(),
+				Reason:  "CloudVendorConnectionFailed",
+			})
+			if errUpdateStatus := r.updateTFClusterStatus(ctx, tfc, nil); errUpdateStatus != nil {
+				return true, errUpdateStatus
+			}
+			return true, err
+		}
+		tfc.Status.CloudVendorConfigHash = cfgHash
+		meta.SetStatusCondition(&tfc.Status.Conditions, metav1.Condition{
+			Type:   constants.ConditionStatusTypeCloudVendorConnection,
+			Status: metav1.ConditionTrue,
+			Reason: "CloudVendorConnectionOK",
+		})
+		return true, nil
+	}
+
 	return false, nil
 }
 
-func (r *TensorFusionClusterReconciler) mustReconcileGPUPool(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
+func (r *TensorFusionClusterReconciler) reconcileGPUPool(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
 	// Fetch existing GPUPools that belong to this cluster
 	var gpupoolsList tfv1.GPUPoolList
 	err := r.List(ctx, &gpupoolsList, client.MatchingLabels(map[string]string{
@@ -343,13 +381,15 @@ func (r *TensorFusionClusterReconciler) checkTFClusterComponentsReady(ctx contex
 
 	// Step 2. check TimeSeriesDatabase, Model/Snapshot Distributor etc. TODO
 
-	// Step 3. check CloudVendorConnection, TODO
-
 	return allPass, conditions, nil
 }
 
-func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster) error {
-	// Update the cluster status
+func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster, prevStatus *tfv1.TensorFusionClusterStatus) error {
+	// Update the cluster status, ignore retryCount, keep other fields to compare
+	prevStatus.RetryCount = tfc.Status.RetryCount
+	if equality.Semantic.DeepEqual(tfc.Status, prevStatus) {
+		return nil
+	}
 	if err := r.Status().Update(ctx, tfc); err != nil {
 		r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())
 		return err
@@ -360,7 +400,7 @@ func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Contex
 // SetupWithManager sets up the controller with the Manager.
 func (r *TensorFusionClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tfv1.TensorFusionCluster{}).
+		For(&tfv1.TensorFusionCluster{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("tensorfusioncluster").
 		Owns(&tfv1.GPUPool{}).
 		Complete(r)

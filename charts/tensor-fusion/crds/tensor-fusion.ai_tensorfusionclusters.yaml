@@ -119,6 +119,7 @@ spec:
                     - nvidia
                     - tencent
                     - runpod
+                    - mock
                     type: string
                 type: object
               dataPipelines:
@@ -888,6 +889,8 @@ spec:
                 - type: string
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              cloudVendorConfigHash:
+                type: string
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
