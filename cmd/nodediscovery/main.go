@@ -77,6 +77,11 @@ func main() {
 	}
 
 	ctx := context.Background()
+	totalTFlops := resource.MustParse("0")
+	totalVRAM := resource.MustParse("0Ki")
+	availableTFlops := resource.MustParse("0")
+	availableVRAM := resource.MustParse("0Ki")
+
 	for i := 0; i < count; i++ {
 		device, ret := nvml.DeviceGetHandleByIndex(i)
 		if ret != nvml.SUCCESS {
@@ -124,6 +129,7 @@ func main() {
 				},
 			},
 		}
+
 		gpuCopy := gpu.DeepCopy()
 		if err := r.Report(ctx, gpu, func() error {
 			// keep Available field
@@ -139,5 +145,31 @@ func main() {
 			ctrl.Log.Error(err, "failed to report GPU", "gpu", gpu)
 			os.Exit(1)
 		}
+		totalTFlops.Add(gpu.Status.Capacity.Tflops)
+		totalVRAM.Add(gpu.Status.Capacity.Vram)
+		availableTFlops.Add(gpu.Status.Available.Tflops)
+		availableVRAM.Add(gpu.Status.Available.Vram)
+	}
+
+	ns := nodeStatus(hostname)
+	ns.TotalTFlops = totalTFlops
+	ns.TotalVRAM = totalVRAM
+	ns.AvailableTFlops = availableTFlops
+	ns.AvailableVRAM = availableVRAM
+
+	if err := r.Report(ctx, &tfv1.GPUNode{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: hostname,
+		},
+		Status: ns,
+	}, func() error { return nil }); err != nil {
+		ctrl.Log.Error(err, "failed to report GPUNode")
+		os.Exit(1)
+	}
+}
+
+func nodeStatus(hostname string) *tfv1.GPUNodeStatus {
+	return &tfv1.GPUNodeStatus{
+		KubernetesNodeName: hostname,
 	}
 }
