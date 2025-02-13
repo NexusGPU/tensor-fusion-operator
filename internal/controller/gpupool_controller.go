@@ -49,7 +49,6 @@ import (
 type GPUPoolReconciler struct {
 	client.Client
 	GpuPoolState config.GpuPoolState
-	GpuNodeState config.GpuNodeState
 	Scheme       *runtime.Scheme
 	Recorder     record.EventRecorder
 }
@@ -89,9 +88,7 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
-	isProvisioningMode := pool.Spec.NodeManagerConfig != nil &&
-		pool.Spec.NodeManagerConfig.NodeProvisioner != nil &&
-		pool.Spec.NodeManagerConfig.NodeProvisioner.Mode == tfv1.NodeProvisionerModeNative
+	isProvisioningMode := pool.Spec.NodeManagerConfig.ProvisioningMode == tfv1.ProvisioningModeProvisioned
 
 	// sync the GPU Pool into memory, used by scheduler and mutation webhook
 	r.GpuPoolState.Set(pool.Name, &pool.Spec)

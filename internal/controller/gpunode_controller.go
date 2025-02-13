@@ -37,9 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // GPUNodeReconciler reconciles a GPUNode object
@@ -47,7 +45,6 @@ type GPUNodeReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	GpuPoolState config.GpuPoolState
-	GpuNodeState config.GpuNodeState
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes,verbs=get;list;watch;create;update;patch;delete
@@ -120,22 +117,6 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tfv1.GPUNode{}).
 		Named("gpunode").
 		Owns(&corev1.Node{}).
-		WithEventFilter(
-			predicate.Funcs{
-				CreateFunc: func(e event.CreateEvent) bool {
-					r.GpuNodeState.Set(e.Object.(*tfv1.GPUNode).Name, e.Object.(*tfv1.GPUNode))
-					return true
-				},
-				UpdateFunc: func(e event.UpdateEvent) bool {
-					r.GpuNodeState.Set(e.ObjectNew.(*tfv1.GPUNode).Name, e.ObjectNew.(*tfv1.GPUNode))
-					return true
-				},
-				DeleteFunc: func(e event.DeleteEvent) bool {
-					r.GpuNodeState.Delete(e.Object.(*tfv1.GPUNode).Name)
-					return true
-				},
-			},
-		).
 		Complete(r)
 }
 

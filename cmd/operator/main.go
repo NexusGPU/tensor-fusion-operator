@@ -155,16 +155,13 @@ func main() {
 
 	ctx := context.Background()
 	gpuPoolState := config.NewGpuPoolStateImpl()
-	gpuNodeState := config.NewGpuNodeStateImpl()
-	scheduleTemplateState := config.NewScheduleTemplateStateImpl()
 
 	scheduler := scheduler.NewNaiveScheduler()
 	if err = (&controller.TensorFusionConnectionReconciler{
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		Scheduler:             scheduler,
-		GpuPoolState:          gpuPoolState,
-		ScheduleTemplateState: scheduleTemplateState,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Scheduler:    scheduler,
+		GpuPoolState: gpuPoolState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TensorFusionConnection")
 		os.Exit(1)
@@ -201,7 +198,6 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		Recorder:     mgr.GetEventRecorderFor("GPUPool"),
 		GpuPoolState: gpuPoolState,
-		GpuNodeState: gpuNodeState,
 	}
 	if err = GPUPoolReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUPool")
@@ -212,7 +208,6 @@ func main() {
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		GpuPoolState: gpuPoolState,
-		GpuNodeState: gpuNodeState,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "GPUNode")
 		os.Exit(1)
@@ -233,9 +228,8 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controller.SchedulingConfigTemplateReconciler{
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		ScheduleTemplateState: scheduleTemplateState,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SchedulingConfigTemplate")
 		os.Exit(1)

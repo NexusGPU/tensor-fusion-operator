@@ -40,10 +40,9 @@ import (
 // TensorFusionConnectionReconciler reconciles a TensorFusionConnection object
 type TensorFusionConnectionReconciler struct {
 	client.Client
-	Scheme                *runtime.Scheme
-	Scheduler             scheduler.Scheduler
-	GpuPoolState          config.GpuPoolState
-	ScheduleTemplateState config.ScheduleTemplateState
+	Scheme       *runtime.Scheme
+	Scheduler    scheduler.Scheduler
+	GpuPoolState config.GpuPoolState
 }
 
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete

@@ -70,8 +70,13 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if err := r.Client.Get(ctx, client.ObjectKey{Name: node.GetLabels()[constants.ProvisionerLabelKey]}, gpuNode); err != nil {
 			return ctrl.Result{}, fmt.Errorf("get gpuNode(%s) : %w", node.GetLabels()[constants.ProvisionerLabelKey], err)
 		}
+		// set owned by GPUNode CR
 		controllerutil.SetControllerReference(gpuNode, node, r.Scheme)
 		r.Client.Update(ctx, node)
+
+		// set GPU node's status to map to K8S node name
+		gpuNode.Status.KubernetesNodeName = node.Name
+		r.Client.Status().Update(ctx, gpuNode)
 		return ctrl.Result{}, nil
 	}
 
@@ -107,7 +112,7 @@ func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node,
 		Spec: tfv1.GPUNodeSpec{
 			ManageMode: tfv1.GPUNodeManageModeAutoSelect,
 		},
-		Status: tfv1.GPUNodeStatus{
+		Status: &tfv1.GPUNodeStatus{
 			KubernetesNodeName: node.Name,
 			ObservedGeneration: node.Generation,
 		},

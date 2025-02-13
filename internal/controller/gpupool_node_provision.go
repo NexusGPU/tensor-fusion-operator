@@ -137,7 +137,7 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 					ManageMode:  tfv1.GPUNodeManageModeProvisioned,
 					CostPerHour: strconv.FormatFloat(costPerHour, 'f', 6, 64),
 				},
-				Status: tfv1.GPUNodeStatus{
+				Status: &tfv1.GPUNodeStatus{
 					TotalTFlops: node.TFlopsOffered,
 					TotalVRAM:   node.VRAMOffered,
 					TotalGPUs:   node.GPUDeviceOffered,
@@ -145,8 +145,12 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 			}
 			controllerutil.SetControllerReference(pool, gpuNodeRes, r.Scheme)
 			err := r.Client.Create(ctx, gpuNodeRes)
-
 			if err != nil {
+				errList = append(errList, err)
+				return
+			}
+			// Update GPUNode status to set the resource quantity
+			if err := r.Client.Status().Update(ctx, gpuNodeRes); err != nil {
 				errList = append(errList, err)
 				return
 			}
