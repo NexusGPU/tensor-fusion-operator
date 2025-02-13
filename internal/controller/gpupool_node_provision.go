@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
@@ -10,7 +11,9 @@ import (
 	"github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	cloudprovider "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider"
@@ -82,7 +85,7 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 	}
 
 	// create provisioner
-	provider, cluster, err := createProvisionerByCluster(ctx, pool, r)
+	provider, cluster, err := createProvisionerAndQueryCluster(ctx, pool, r)
 	if err != nil {
 		return false, err
 	}
@@ -112,11 +115,56 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 		go func(node types.NodeCreationParam) {
 			defer wg.Done()
 
+			// Create GPUNode custom resource immediately and GPUNode controller will watch the K8S node to be ready
+			// Persist the status to GPUNode to avoid duplicated creation in next reconciliation
+			// If the K8S node never be ready after some time, the GPUNode will be deleted, then the Pool reconcile loop can scale up and meet the capacity constraint again
+
+			costPerHour, pricingErr := provider.GetInstancePricing(node.InstanceType, node.Region, node.CapacityType)
+			if pricingErr != nil {
+				errList = append(errList, pricingErr)
+				return
+			}
+			gpuNodeRes := &tfv1.GPUNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: node.NodeName,
+					Labels: map[string]string{
+						constants.LabelKeyOwner:        pool.Name,
+						constants.LabelKeyClusterOwner: cluster.Name,
+						constants.LabelKeyNodeClass:    nodeClass,
+					},
+				},
+				Spec: tfv1.GPUNodeSpec{
+					ManageMode:  tfv1.GPUNodeManageModeProvisioned,
+					CostPerHour: strconv.FormatFloat(costPerHour, 'f', 6, 64),
+				},
+				Status: tfv1.GPUNodeStatus{
+					TotalTFlops: node.TFlopsOffered,
+					TotalVRAM:   node.VRAMOffered,
+					TotalGPUs:   node.GPUDeviceOffered,
+				},
+			}
+			controllerutil.SetControllerReference(pool, gpuNodeRes, r.Scheme)
+			err := r.Client.Create(ctx, gpuNodeRes)
+
+			if err != nil {
+				errList = append(errList, err)
+				return
+			}
+
+			// Create node on cloud provider
 			status, err := provider.CreateNode(ctx, &node)
 			if err != nil {
 				errList = append(errList, err)
 				return
 			}
+
+			// Update GPUNode status about the cloud vendor info
+			// To match GPUNode - K8S node, the --node-label in Kubelet is MUST-have, like Karpenter, it force set userdata to add a provisionerId label, k8s node controller then can set its ownerReference to the GPUNode
+			gpuNodeRes.Status.NodeInfo.IP = status.PrivateIP
+			gpuNodeRes.Status.NodeInfo.InstanceID = status.InstanceID
+			gpuNodeRes.Status.NodeInfo.Region = node.Region
+			r.Client.Status().Update(ctx, gpuNodeRes)
+
 			r.Recorder.Eventf(pool, corev1.EventTypeNormal, "GPUNodeCreated", "Created node: %s, IP: %s", status.InstanceID, status.PrivateIP)
 		}(node)
 	}
@@ -129,7 +177,7 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 	return len(gpuNodeParams) > 0, nil
 }
 
-func createProvisionerByCluster(ctx context.Context, pool *tfv1.GPUPool, r *GPUPoolReconciler) (types.GPUNodeProvider, *tfv1.TensorFusionCluster, error) {
+func createProvisionerAndQueryCluster(ctx context.Context, pool *tfv1.GPUPool, r *GPUPoolReconciler) (types.GPUNodeProvider, *tfv1.TensorFusionCluster, error) {
 	clusterName := pool.Labels[constants.LabelKeyOwner]
 	if clusterName == "" {
 		return nil, nil, fmt.Errorf("failed to get cluster name for pool %s", pool.Name)

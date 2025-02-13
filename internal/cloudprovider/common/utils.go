@@ -10,14 +10,14 @@ import (
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"golang.org/x/exp/rand"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // Avoid creating too many nodes at once
-const MAX_NODES_PER_RECONCILE_LOOP = 200
+const MAX_NODES_PER_RECONCILE_LOOP = 100
 
 func GetAccessKeyOrSecretFromPath(filePath string) (string, error) {
 	if filePath != "" {
@@ -41,7 +41,6 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 	requirements := pool.Spec.NodeManagerConfig.NodeProvisioner.GPURequirements
 	region := cluster.Spec.ComputingVendor.Params.DefaultRegion
 	zones := []string{}
-	os := constants.GPUNodeOSLinux
 
 	// check region override
 	for _, req := range requirements {
@@ -57,7 +56,6 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 	}
 
 	var bestInstance *types.GPUNodeInstanceInfo
-	var bestCapacityType types.CapacityTypeEnum
 	minCost := math.MaxFloat64
 	var bestNumInstances int64
 
@@ -67,7 +65,15 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 	for _, req := range requirements {
 		if req.Key == tfv1.NodeRequirementKeyCapacityType && req.Operator == corev1.NodeSelectorOpIn {
 			// user can specify other capacity types
-			preferredCapacityType = types.CapacityTypeEnum(req.Values[0])
+			hasSpot := false
+			for _, capacityType := range req.Values {
+				if capacityType == string(types.CapacityTypeSpot) {
+					hasSpot = true
+				}
+			}
+			if !hasSpot {
+				preferredCapacityType = types.CapacityTypeEnum(req.Values[0])
+			}
 		} else if req.Key == tfv1.NodeRequirementKeyRegion && req.Operator == corev1.NodeSelectorOpIn {
 			// single pool can only leverage one region
 			region = req.Values[0]
@@ -75,8 +81,6 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 			// single pool can use multiple zones
 			// TODO need balance the node number among zones, need maxScrew factor like Kubernetes, using simple random balancing as of now
 			zones = req.Values
-		} else if req.Key == tfv1.NodeRequirementKeyOS && req.Operator == corev1.NodeSelectorOpIn {
-			os = req.Values[0]
 		}
 	}
 	if len(zones) == 0 {
@@ -129,10 +133,13 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 			NodeClass:    nodeClass,
 			Region:       region,
 			Zone:         zones[rand.Intn(len(zones))],
-			ExtraParams: map[string]string{
-				string(tfv1.NodeRequirementKeyCapacityType): string(bestCapacityType),
-				string(tfv1.NodeRequirementKeyOS):           os,
-			},
+			CapacityType: preferredCapacityType,
+
+			TFlopsOffered:    resource.MustParse(fmt.Sprintf("%d", bestInstance.FP16TFlopsPerGPU*bestInstance.GPUCount)),
+			VRAMOffered:      resource.MustParse(fmt.Sprintf("%dGi", bestInstance.VRAMGigabytesPerGPU*bestInstance.GPUCount)),
+			GPUDeviceOffered: bestInstance.GPUCount,
+
+			ExtraParams: cluster.Spec.ComputingVendor.Params.ExtraParams,
 		})
 	}
 

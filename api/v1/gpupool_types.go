@@ -87,6 +87,9 @@ type Oversubscription struct {
 }
 
 type NodeManagerConfig struct {
+	// +kubebuilder:default="AutoSelect"
+	ProvisioningMode ProvisioningMode `json:"provisioningMode,omitempty"`
+
 	// +optional
 	NodeProvisioner *NodeProvisioner `json:"nodeProvisioner,omitempty"`
 
@@ -99,6 +102,14 @@ type NodeManagerConfig struct {
 	// +optional
 	NodePoolRollingUpdatePolicy *NodeRollingUpdatePolicy `json:"nodePoolRollingUpdatePolicy,omitempty"`
 }
+
+// +kubebuilder:validation:Enum=Provisioned;AutoSelect
+type ProvisioningMode string
+
+const (
+	ProvisioningModeProvisioned ProvisioningMode = "Provisioned"
+	ProvisioningModeAutoSelect  ProvisioningMode = "AutoSelect"
+)
 
 // NodeProvisioner or NodeSelector, they are exclusive.
 // NodeSelector is for existing GPUs, NodeProvisioner is for Karpenter-like auto management.

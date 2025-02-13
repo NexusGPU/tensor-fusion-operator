@@ -10,7 +10,9 @@ const (
 	FinalizerSuffix = "finalizer"
 	Finalizer       = Domain + "/" + FinalizerSuffix
 
-	LabelKeyOwner = Domain + "/managed-by"
+	LabelKeyOwner        = Domain + "/managed-by"
+	LabelKeyClusterOwner = Domain + "/cluster"
+	LabelKeyNodeClass    = Domain + "/node-class"
 
 	GPUNodePoolIdentifierLabelPrefix = Domain + "/pool-"
 	GPUNodePoolIdentifierLabelFormat = Domain + "/pool-%s"
@@ -73,4 +75,10 @@ const (
 	GPUNodeOSLinux   = "linux"
 	GPUNodeOSWindows = "windows"
 	GPUNodeOSMacOS   = "macos"
+)
+
+// To match GPUNode with K8S node, when creating from cloud vendor, must set a label from cloud-init userdata
+const (
+	ProvisionerLabelKey        = "tensor-fusion.ai/node-provisioner"
+	ProvisionerNamePlaceholder = "__GPU_NODE_RESOURCE_NAME__"
 )

@@ -50,11 +50,14 @@ spec:
                           default: true
                           type: boolean
                         encrypted:
-                          default: false
+                          default: true
                           type: boolean
                         volumeSize:
                           type: string
                         volumeType:
+                          description: |-
+                            Default value would varies based on the cloud vendor
+                            For AWS it's gp3, for Alicloud it's cloud_essd
                           type: string
                       type: object
                   type: object

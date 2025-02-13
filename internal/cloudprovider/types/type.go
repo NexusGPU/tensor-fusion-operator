@@ -5,15 +5,20 @@ import (
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 type NodeCreationParam struct {
-	NodeName string
-
+	NodeName     string
 	Region       string
 	Zone         string
 	InstanceType string
 	NodeClass    *tfv1.GPUNodeClass
+	CapacityType CapacityTypeEnum
+
+	TFlopsOffered    resource.Quantity
+	VRAMOffered      resource.Quantity
+	GPUDeviceOffered int32
 
 	ExtraParams map[string]string
 }

@@ -90,7 +90,7 @@ func (r *GPUPoolCompactionReconciler) checkNodeCompaction(ctx context.Context, p
 
 		if couldBeTerminatedByTFlops && couldBeTerminatedByVRAM {
 			r.Recorder.Eventf(pool, "Compaction", "Node %s is empty and deletion won't impact warm-up capacity, start terminating it", gpuNode.Name)
-			if pool.Spec.NodeManagerConfig.NodeSelector == nil {
+			if pool.Spec.NodeManagerConfig.ProvisioningMode == tfv1.ProvisioningModeProvisioned {
 				// not managed by Kubernetes, managed by TensorFusion, safe to terminate, and finalizer will cause K8S node and related cloud resources to be deleted
 				err := r.Delete(ctx, &gpuNode)
 				if err != nil {

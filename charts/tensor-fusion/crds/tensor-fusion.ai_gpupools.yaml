@@ -491,6 +491,12 @@ spec:
                     - nodeSelectorTerms
                     type: object
                     x-kubernetes-map-type: atomic
+                  provisioningMode:
+                    default: AutoSelect
+                    enum:
+                    - Provisioned
+                    - AutoSelect
+                    type: string
                 type: object
               observabilityConfig:
                 properties:

@@ -112,6 +112,7 @@ type GPUNodeInfo struct {
 	// +optional
 	// only set when node is managed by TensorFusion
 	InstanceID string `json:"instanceID,omitempty"`
+	Region     string `json:"region,omitempty"`
 
 	Hostname         string `json:"hostname,omitempty"`
 	IP               string `json:"ip,omitempty"`

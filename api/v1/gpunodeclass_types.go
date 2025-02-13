@@ -105,12 +105,18 @@ type NodeClassMetadataOptions struct {
 }
 
 type NodeClassBlockDeviceMappings struct {
-	DeviceName string                       `json:"deviceName,omitempty"` // The device name for the block device
-	EBS        NodeClassBlockDeviceSettings `json:"ebs,omitempty"`
+	// +optional
+	DeviceName string `json:"deviceName,omitempty"` // The device name for the block device
+
+	EBS NodeClassBlockDeviceSettings `json:"ebs,omitempty"`
 }
 
 type NodeClassBlockDeviceSettings struct {
 	VolumeSize string `json:"volumeSize,omitempty"`
+
+	// +optional
+	// Default value would varies based on the cloud vendor
+	// For AWS it's gp3, for Alicloud it's cloud_essd
 	VolumeType string `json:"volumeType,omitempty"`
 
 	// +optional
@@ -118,7 +124,7 @@ type NodeClassBlockDeviceSettings struct {
 	DeleteOnTermination bool `json:"deleteOnTermination,omitempty"` // Whether to delete the EBS volume on termination
 
 	// +optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Encrypted bool `json:"encrypted,omitempty"` // Whether the EBS volume is encrypted
 
 }

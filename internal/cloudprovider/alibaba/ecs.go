@@ -2,7 +2,9 @@ package alibaba
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"strconv"
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
@@ -83,17 +85,8 @@ func (p AliyunGPUNodeProvider) CreateNode(ctx context.Context, param *types.Node
 	request.RegionId = param.Region
 	request.Amount = "1"
 
-	// Handle general nodeClass params which is commonly used in all cloud vendors
-	if err := handleNodeClassParams(request, &nodeClass); err != nil {
+	if err := handleNodeClassAndExtraParams(request, param); err != nil {
 		return nil, err
-	}
-
-	// Handle extra params
-	capacityType := param.ExtraParams[string(tfv1.NodeRequirementKeyCapacityType)]
-	if capacityType != "" && capacityType != string(types.CapacityTypeOnDemand) {
-		// Convert from Spot/OnDemand to each cloud vendor's equivalent
-		request.SpotStrategy = "SpotAsPriceGo"
-		request.SpotDuration = requests.NewInteger(0)
 	}
 
 	tag := []ecs.RunInstancesTag{
@@ -129,6 +122,7 @@ func (p AliyunGPUNodeProvider) CreateNode(ctx context.Context, param *types.Node
 func (p AliyunGPUNodeProvider) TerminateNode(ctx context.Context, param *types.NodeIdentityParam) error {
 	request := ecs.CreateDeleteInstanceRequest()
 	request.InstanceId = param.InstanceID
+	request.RegionId = param.Region
 	response, err := p.client.DeleteInstance(request)
 	if err != nil {
 		return fmt.Errorf("failed to terminate instance: %w", err)
@@ -170,7 +164,82 @@ func (p AliyunGPUNodeProvider) GetNodeStatus(ctx context.Context, param *types.N
 	return status, nil
 }
 
-func handleNodeClassParams(request *ecs.RunInstancesRequest, nodeClass *tfv1.GPUNodeClassSpec) error {
-	// TODO: handle nodeClass.SecurityGroupSelectorTerms and nodeClass.SubnetSelectorTerms and others
+func handleNodeClassAndExtraParams(request *ecs.RunInstancesRequest, param *types.NodeCreationParam) error {
+	nodeClass := param.NodeClass.Spec
+	if len(nodeClass.SecurityGroupSelectorTerms) > 0 {
+		request.SecurityGroupId = nodeClass.SecurityGroupSelectorTerms[0].ID
+	}
+	if len(nodeClass.SubnetSelectorTerms) > 0 {
+		request.VSwitchId = nodeClass.SubnetSelectorTerms[0].ID
+	}
+
+	if len(nodeClass.BlockDeviceMappings) > 0 {
+		perfLevel := "PL0"
+		if param.ExtraParams["dataDiskPerformanceLevel"] != "" {
+			perfLevel = param.ExtraParams["dataDiskPerformanceLevel"]
+		}
+		dataDisks := []ecs.RunInstancesDataDisk{}
+		for _, ebsMapping := range nodeClass.BlockDeviceMappings {
+			dataDisks = append(dataDisks, ecs.RunInstancesDataDisk{
+				DiskName:           ebsMapping.DeviceName,
+				Size:               ebsMapping.EBS.VolumeSize,
+				Category:           ebsMapping.EBS.VolumeType,
+				PerformanceLevel:   perfLevel,
+				DeleteWithInstance: strconv.FormatBool(ebsMapping.EBS.DeleteOnTermination),
+				Encrypted:          strconv.FormatBool(ebsMapping.EBS.Encrypted),
+			})
+		}
+		request.DataDisk = &dataDisks
+	}
+
+	// Add best practices
+	request.InternetMaxBandwidthOut = requests.NewInteger(100)
+	request.InternetChargeType = "PayByTraffic"
+	request.Description = "GPU node managed by TensorFusion NodeClass: " + param.NodeClass.Name
+
+	// Add user data
+	request.UserData = base64.StdEncoding.EncodeToString([]byte(nodeClass.UserData))
+
+	// Handle extra params
+	capacityType := param.ExtraParams[string(tfv1.NodeRequirementKeyCapacityType)]
+	if capacityType != "" && capacityType != string(types.CapacityTypeOnDemand) {
+		// Convert from Spot/OnDemand to each cloud vendor's equivalent
+		if param.ExtraParams["spotPriceLimit"] != "" {
+			priceLimit, err := strconv.ParseFloat(param.ExtraParams["spotPriceLimit"], 64)
+			if err != nil {
+				return err
+			}
+			request.SpotPriceLimit = requests.NewFloat(priceLimit)
+			request.SpotStrategy = "SpotWithPriceLimit"
+		} else {
+			request.SpotStrategy = "SpotAsPriceGo"
+
+		}
+		if param.ExtraParams["spotDuration"] != "" {
+			duration, err := strconv.Atoi(param.ExtraParams["spotDuration"])
+			if err != nil {
+				return err
+			}
+			request.SpotDuration = requests.NewInteger(duration)
+		} else {
+			request.SpotDuration = requests.NewInteger(0)
+		}
+
+		// Could be Stop or Terminate in alicloud
+		if param.ExtraParams["spotInterruptionBehavior"] != "" {
+			request.SpotInterruptionBehavior = param.ExtraParams["spotInterruptionBehavior"]
+		}
+	}
+	if param.ExtraParams["systemDiskCategory"] != "" {
+		request.SystemDiskCategory = param.ExtraParams["systemDiskCategory"]
+	} else {
+		request.SystemDiskCategory = "cloud_essd"
+	}
+	if param.ExtraParams["systemDiskSize"] != "" {
+		request.SystemDiskSize = param.ExtraParams["systemDiskSize"]
+	} else {
+		// 40G is enough for most cases
+		request.SystemDiskSize = "40"
+	}
 	return nil
 }

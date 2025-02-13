@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "alicloud",
         "Aliyun",
         "AMDCDNA",
         "AMDRDNA",
@@ -19,6 +20,7 @@
         "CUDA",
         "cycjimmy",
         "dylib",
+        "essd",
         "Eventf",
         "finalizer",
         "Finalizers",
@@ -30,6 +32,7 @@
         "gpunodes",
         "gpupool",
         "gpupools",
+        "greptimedb",
         "healthz",
         "karpenter",
         "kubebuilder",

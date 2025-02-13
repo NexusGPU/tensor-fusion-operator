@@ -62,17 +62,24 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// Remove deletion mark if updated
 	if node.GetLabels()[constants.NodeDeletionMark] == "true" {
-		node.GetLabels()[constants.NodeDeletionMark] = "false"
-		if err := r.Patch(ctx, node, client.Merge); err != nil {
-			return ctrl.Result{}, fmt.Errorf("patch node(%s) : %w", node.Name, err)
-		}
+		log.Info("Node should be removed due to GPUNode compaction, but it's not managed by TensorFusion, skip.", "name", node.Name)
 	}
 
-	// generate tensor fusion GPU node and apply to cluster
+	if node.GetLabels()[constants.ProvisionerLabelKey] != "" {
+		gpuNode := &tfv1.GPUNode{}
+		if err := r.Client.Get(ctx, client.ObjectKey{Name: node.GetLabels()[constants.ProvisionerLabelKey]}, gpuNode); err != nil {
+			return ctrl.Result{}, fmt.Errorf("get gpuNode(%s) : %w", node.GetLabels()[constants.ProvisionerLabelKey], err)
+		}
+		controllerutil.SetControllerReference(gpuNode, node, r.Scheme)
+		r.Client.Update(ctx, node)
+		return ctrl.Result{}, nil
+	}
+
+	// TODO: move to GPUPool controller. generate tensor fusion GPU node and apply to cluster
 	gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
 
 	// set owner reference to cascade delete
-	e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
+	e := controllerutil.SetOwnerReference(node, gpuNode, r.Scheme)
 	if e != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
 	}

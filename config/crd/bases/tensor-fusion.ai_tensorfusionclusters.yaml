@@ -89,6 +89,14 @@ spec:
                         type: string
                       defaultRegion:
                         type: string
+                      extraParams:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          User can set extra cloud vendor params, eg.
+                          in ali cloud:" spotPriceLimit, spotDuration, spotInterruptionBehavior, systemDiskCategory, systemDiskSize, dataDiskPerformanceLevel
+                          in aws cloud: TODO
+                        type: object
                       iamRole:
                         description: preferred IAM role since it's more secure
                         type: string
@@ -586,6 +594,12 @@ spec:
                               - nodeSelectorTerms
                               type: object
                               x-kubernetes-map-type: atomic
+                            provisioningMode:
+                              default: AutoSelect
+                              enum:
+                              - Provisioned
+                              - AutoSelect
+                              type: string
                           type: object
                         observabilityConfig:
                           properties:

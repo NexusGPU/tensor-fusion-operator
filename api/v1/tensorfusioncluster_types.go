@@ -158,6 +158,12 @@ type ComputingVendorParams struct {
 
 	// +optional
 	ConfigFile string `json:"configFile,omitempty"`
+
+	// +optional
+	// User can set extra cloud vendor params, eg.
+	// in ali cloud:" spotPriceLimit, spotDuration, spotInterruptionBehavior, systemDiskCategory, systemDiskSize, dataDiskPerformanceLevel
+	// in aws cloud: TODO
+	ExtraParams map[string]string `json:"extraParams,omitempty"`
 }
 
 // StorageVendorConfig defines Postgres database with extensions for timeseries storage and other resource aggregation results, system events and diagnostics reports etc.
