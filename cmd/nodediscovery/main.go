@@ -175,5 +175,6 @@ func main() {
 func nodeStatus(hostname string) *tfv1.GPUNodeStatus {
 	return &tfv1.GPUNodeStatus{
 		KubernetesNodeName: hostname,
+		Phase:              tfv1.TensorFusionGPUNodePhaseRunning,
 	}
 }
