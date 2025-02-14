@@ -153,6 +153,7 @@ func (r *TensorFusionClusterReconciler) Reconcile(ctx context.Context, req ctrl.
 			return ctrl.Result{RequeueAfter: delay}, nil
 		} else {
 			// all components are ready, set cluster as ready
+			tfc.Status.RetryCount = 0
 			tfc.SetAsReady(conditions...)
 			gpupools, err := r.mustListOwnedGPUPools(ctx, tfc)
 			if err != nil {
@@ -349,10 +350,6 @@ func (r *TensorFusionClusterReconciler) checkTFClusterComponentsReady(ctx contex
 			Type:   constants.ConditionStatusTypeTimeSeriesDatabase,
 			Status: metav1.ConditionTrue,
 		},
-		{
-			Type:   constants.ConditionStatusTypeCloudVendorConnection,
-			Status: metav1.ConditionTrue,
-		},
 	}
 
 	// check if all conditions are true, any not ready component will make allPass false
@@ -387,7 +384,8 @@ func (r *TensorFusionClusterReconciler) checkTFClusterComponentsReady(ctx contex
 func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster, prevStatus *tfv1.TensorFusionClusterStatus) error {
 	// Update the cluster status, ignore retryCount, keep other fields to compare
 	prevStatus.RetryCount = tfc.Status.RetryCount
-	if equality.Semantic.DeepEqual(tfc.Status, prevStatus) {
+
+	if equality.Semantic.DeepEqual(tfc.Status, *prevStatus) {
 		return nil
 	}
 	if err := r.Status().Update(ctx, tfc); err != nil {

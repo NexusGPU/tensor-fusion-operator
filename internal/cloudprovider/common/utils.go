@@ -128,7 +128,7 @@ func CalculateLeastCostGPUNodes(ctx context.Context, provider types.GPUNodeProvi
 	for i := int64(0); i < bestNumInstances; i++ {
 		// Zone and region should ideally be determined from nodeClass's subnet selectors
 		nodes = append(nodes, types.NodeCreationParam{
-			NodeName:     fmt.Sprintf("%s-%s-%d", pool.Name, generateRandomString(6), i+1),
+			NodeName:     fmt.Sprintf("%s-%s", pool.Name, generateRandomString(8)),
 			InstanceType: bestInstance.InstanceType,
 			NodeClass:    nodeClass,
 			Region:       region,

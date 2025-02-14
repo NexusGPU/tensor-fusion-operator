@@ -96,6 +96,11 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if e != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
 		}
+
+		gpuNode.Status.KubernetesNodeName = node.Name
+		if err := r.Client.Status().Patch(ctx, gpuNode, client.Merge); err != nil {
+			return ctrl.Result{}, fmt.Errorf("can not add Kubernetes Node info into gpuNode(%s) status : %w", gpuNode.Name, err)
+		}
 		log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
 	}
 
@@ -117,10 +122,6 @@ func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node,
 		},
 		Spec: tfv1.GPUNodeSpec{
 			ManageMode: tfv1.GPUNodeManageModeAutoSelect,
-		},
-		Status: tfv1.GPUNodeStatus{
-			KubernetesNodeName: node.Name,
-			ObservedGeneration: node.Generation,
 		},
 	}
 	return gpuNode

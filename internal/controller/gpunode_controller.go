@@ -116,6 +116,11 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
+	// Only reconcile if the node has a kubernetes node name, otherwise the DaemonSet like workloads can not be scheduled
+	if node.Status.KubernetesNodeName == "" {
+		return ctrl.Result{}, nil
+	}
+
 	if err := r.reconcileNodeDiscoveryJob(ctx, node, poolName); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -173,7 +178,7 @@ func (r *GPUNodeReconciler) reconcileNodeDiscoveryJob(
 				{
 					Key:      "metadata.name",
 					Operator: corev1.NodeSelectorOpIn,
-					Values:   []string{gpunode.Name},
+					Values:   []string{gpunode.Status.KubernetesNodeName},
 				},
 			},
 		})
@@ -227,10 +232,9 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 	if poolName == "" {
 		return nil
 	}
-
 	namespace := utils.CurrentNamespace()
 	log := log.FromContext(ctx)
-	hypervisorPodName := fmt.Sprintf("%s-%s-hypervisor", poolName, node.Name)
+	hypervisorPodName := fmt.Sprintf("%s-hypervisor", node.Name)
 	pool := r.GpuPoolState.Get(poolName)
 	if pool == nil {
 		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod, pool: %s", poolName)
@@ -245,7 +249,7 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 	if spec.NodeSelector == nil {
 		spec.NodeSelector = make(map[string]string)
 	}
-	spec.NodeSelector["kubernetes.io/hostname"] = node.Name
+	spec.NodeSelector["kubernetes.io/hostname"] = node.Status.KubernetesNodeName
 	newPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      hypervisorPodName,

@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"math/rand/v2"
 	"os"
@@ -91,6 +91,11 @@ func CurrentNamespace() string {
 
 func GetObjectHash(obj any) string {
 	hasher := sha256.New()
-	hasher.Write([]byte(fmt.Sprintf("%v", obj)))
+	jsonBytes, err := json.Marshal(obj)
+	if err != nil {
+		panic(err)
+	}
+	str := string(jsonBytes)
+	hasher.Write([]byte(str))
 	return hex.EncodeToString(hasher.Sum(nil))
 }

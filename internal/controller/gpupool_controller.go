@@ -51,6 +51,7 @@ type GPUPoolReconciler struct {
 func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
+	// TODO, debounce the reconcile when lots of GPUNodes created/updated, GPUPool should not updated too frequently (it owns Job)
 	log.Info("Reconciling GPUPool", "name", req.NamespacedName.Name)
 	defer func() {
 		log.Info("Finished reconciling GPUPool", "name", req.NamespacedName.Name)
@@ -77,6 +78,11 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, nil
 	}
 
+	// Update pool capacity at first
+	if err := r.reconcilePoolCurrentCapacityAndReadiness(ctx, pool); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
 	isProvisioningMode := pool.Spec.NodeManagerConfig.ProvisioningMode == tfv1.ProvisioningModeProvisioned
 
@@ -91,11 +97,8 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 		// Set phase to updating and let GPUNode event trigger the check and update capacity loop, util all nodes are ready
 		if newNodeCreated {
+			// Refresh the capacity again since new node has been created
 			pool.Status.Phase = tfv1.TensorFusionPoolPhaseUpdating
-			err = r.Client.Status().Update(ctx, pool)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
 			if err := r.reconcilePoolCurrentCapacityAndReadiness(ctx, pool); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -108,10 +111,6 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	// }
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
-
-	if err := r.reconcilePoolCurrentCapacityAndReadiness(ctx, pool); err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }
