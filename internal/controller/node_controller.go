@@ -66,6 +66,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	if node.GetLabels()[constants.ProvisionerLabelKey] != "" {
+		// Provision mode, match the provisionerID(GPUNode) here
 		gpuNode := &tfv1.GPUNode{}
 		if err := r.Client.Get(ctx, client.ObjectKey{Name: node.GetLabels()[constants.ProvisionerLabelKey]}, gpuNode); err != nil {
 			return ctrl.Result{}, fmt.Errorf("get gpuNode(%s) : %w", node.GetLabels()[constants.ProvisionerLabelKey], err)
@@ -82,22 +83,22 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		if err := r.Client.Status().Update(ctx, gpuNode); err != nil {
 			return ctrl.Result{}, fmt.Errorf("can not update gpuNode(%s) status : %w", gpuNode.Name, err)
 		}
-		return ctrl.Result{}, nil
+	} else {
+		// Select mode, GPU node is controlled by K8S node
+		gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
+
+		// set owner reference to cascade delete
+		e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
+		if e != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
+		}
+		_, e = controllerutil.CreateOrPatch(ctx, r.Client, gpuNode, nil)
+		if e != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
+		}
+		log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
 	}
 
-	// TODO: move to GPUPool controller. generate tensor fusion GPU node and apply to cluster
-	gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
-
-	// set owner reference to cascade delete
-	e := controllerutil.SetOwnerReference(node, gpuNode, r.Scheme)
-	if e != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
-	}
-	_, e = controllerutil.CreateOrPatch(ctx, r.Client, gpuNode, nil)
-	if e != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
-	}
-	log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
 	return ctrl.Result{}, nil
 }
 
