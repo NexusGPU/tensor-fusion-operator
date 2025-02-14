@@ -15,6 +15,17 @@
             "program": "${workspaceFolder}/cmd/operator/main.go",
         },
         {
+            "name": "Debug Discovery",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "env": {
+                "HOSTNAME": "iz0xij4pmbq2kgfhvkir32z",
+                "KUBECONFIG": "/Users/joeyyang/.kube/dev_us-east-1_demo",
+            },
+            "program": "${workspaceFolder}/cmd/nodediscovery/main.go",
+        },
+        {
             "name": "Debug Dev Env Operator",
             "type": "go",
             "request": "launch",

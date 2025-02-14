@@ -3,11 +3,13 @@ package reporter
 import (
 	"context"
 	"fmt"
+	"os"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -50,7 +52,14 @@ type KubeReporter struct {
 }
 
 func NewKubeReporter(namespace string) (Reporter, error) {
-	config, err := rest.InClusterConfig()
+	kubeConfigEnvVar := os.Getenv("KUBECONFIG")
+	var config *rest.Config
+	var err error
+	if kubeConfigEnvVar != "" {
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfigEnvVar)
+	} else {
+		config, err = rest.InClusterConfig()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("find cluster kubeConfig %w", err)
 	}
@@ -69,9 +78,17 @@ func NewKubeReporter(namespace string) (Reporter, error) {
 }
 
 func (r *KubeReporter) Report(ctx context.Context, obj client.Object, f controllerutil.MutateFn) error {
-	_, err := controllerutil.CreateOrUpdate(ctx, r.client, obj, f)
+	statusObj := obj.DeepCopyObject().(client.Object)
+	_, err := controllerutil.CreateOrUpdate(ctx, r.client, obj, func() error {
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("create or update err: %w", err)
 	}
-	return r.client.Status().Patch(ctx, obj, client.Merge)
+
+	if err := f(); err != nil {
+		return err
+	}
+	// available rewrite to wrong value
+	return r.client.Status().Update(ctx, statusObj)
 }

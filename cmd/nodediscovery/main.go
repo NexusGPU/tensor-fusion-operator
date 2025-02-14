@@ -43,10 +43,10 @@ func main() {
 	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	gpuinfos, err := config.LoadGpuInfoFromFile(gpuInfoConfig)
+	gpuInfo, err := config.LoadGpuInfoFromFile(gpuInfoConfig)
 	if err != nil {
 		ctrl.Log.Error(err, "unable to read gpuInfoConfig file")
-		os.Exit(1)
+		gpuInfo = make([]config.GpuInfo, 0)
 	}
 
 	ret := nvml.Init()
@@ -110,7 +110,7 @@ func main() {
 			ctrl.Log.Error(errors.New(nvml.ErrorString(ret)), "unable to get memory info of device", "index", i)
 			os.Exit(1)
 		}
-		info, ok := lo.Find(gpuinfos, func(info config.GpuInfo) bool {
+		info, ok := lo.Find(gpuInfo, func(info config.GpuInfo) bool {
 			return info.FullModelName == deviceName
 		})
 		tflops := info.Fp16TFlops
@@ -122,6 +122,7 @@ func main() {
 				Name: uuid,
 			},
 			Status: tfv1.GPUStatus{
+				Phase: tfv1.TensorFusionGPUPhaseRunning,
 				Capacity: &tfv1.Resource{
 					Vram:   resource.MustParse(fmt.Sprintf("%dKi", memInfo.Total)),
 					Tflops: tflops,
