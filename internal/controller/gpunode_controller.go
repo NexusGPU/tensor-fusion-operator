@@ -305,5 +305,6 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&tfv1.GPUNode{}).
 		Named("gpunode").
 		Owns(&corev1.Node{}).
+		Owns(&batchv1.Job{}).
 		Complete(r)
 }
