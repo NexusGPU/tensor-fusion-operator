@@ -92,6 +92,26 @@ var MockGpuPoolSpec = tfv1.GPUPoolSpec{
 		},
 	},
 	ComponentConfig: &tfv1.ComponentConfig{
+		Hypervisor: &tfv1.HypervisorConfig{
+			PodTemplate: &runtime.RawExtension{
+				Raw: lo.Must(json.Marshal(
+					corev1.PodTemplate{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								RestartPolicy: corev1.RestartPolicyOnFailure,
+								Containers: []corev1.Container{
+									{
+										Name:    "tensorfusion-hypervisor",
+										Image:   "busybox:stable-glibc",
+										Command: []string{"sleep", "infinity"},
+									},
+								},
+							},
+						},
+					},
+				)),
+			},
+		},
 		NodeDiscovery: &tfv1.NodeDiscoveryConfig{
 			PodTemplate: &runtime.RawExtension{
 				Raw: lo.Must(json.Marshal(

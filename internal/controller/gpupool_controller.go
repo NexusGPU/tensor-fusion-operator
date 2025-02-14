@@ -18,34 +18,22 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	utils "github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // GPUPoolReconciler reconciles a GPUPool object
@@ -118,10 +106,6 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	if !isProvisioningMode {
 		// TODO: move GPUNode CR creation here, rather than node_controller
-		// TODO: move the node discovery job to the GPUNode controller
-		if err := r.startNodeDiscovery(ctx, pool); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
@@ -186,135 +170,11 @@ func (r *GPUPoolReconciler) reconcilePoolCurrentCapacityAndReadiness(ctx context
 	return nil
 }
 
-func (r *GPUPoolReconciler) startNodeDiscovery(
-	ctx context.Context,
-	pool *tfv1.GPUPool,
-) error {
-	log := log.FromContext(ctx)
-	log.Info("Starting node discovery job")
-
-	if pool.Spec.NodeManagerConfig == nil || pool.Spec.NodeManagerConfig.NodeSelector == nil {
-		log.Info("missing NodeManagerConfig.nodeSelector config in pool spec, skipped")
-		return nil
-	}
-	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
-		return fmt.Errorf(`missing node discovery pod template in pool spec`)
-	}
-	podTmpl := &corev1.PodTemplate{}
-	err := json.Unmarshal(pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
-	if err != nil {
-		return fmt.Errorf("unmarshal pod template: %w", err)
-	}
-
-	selector := labels.NewSelector()
-	poolReq, err := labels.NewRequirement(fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name), selection.DoubleEquals, []string{"true"})
-	if err != nil {
-		return fmt.Errorf("new GPUNodePoolIdentifier label seletor: %w", err)
-	}
-	selector = selector.Add(*poolReq)
-	nodes := &tfv1.GPUNodeList{}
-	if err := r.Client.List(ctx, nodes, &client.ListOptions{LabelSelector: selector}); err != nil {
-		return fmt.Errorf("list gpunodes: %v", err)
-	}
-
-	for _, gpuNode := range nodes.Items {
-		node := &corev1.Node{}
-		if err := r.Client.Get(ctx, client.ObjectKeyFromObject(&gpuNode), node); err != nil {
-			return err
-		}
-		matches, err := schedulingcorev1.MatchNodeSelectorTerms(node, pool.Spec.NodeManagerConfig.NodeSelector)
-		if err != nil {
-			return err
-		}
-		if matches {
-			templateCopy := podTmpl.Template.DeepCopy()
-			if templateCopy.Spec.Affinity == nil {
-				templateCopy.Spec.Affinity = &corev1.Affinity{}
-			}
-			if templateCopy.Spec.Affinity.NodeAffinity == nil {
-				templateCopy.Spec.Affinity.NodeAffinity = &corev1.NodeAffinity{}
-			}
-			if templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution == nil {
-				templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &corev1.NodeSelector{
-					NodeSelectorTerms: make([]corev1.NodeSelectorTerm, 0),
-				}
-			}
-			templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms =
-				append(templateCopy.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms, corev1.NodeSelectorTerm{
-					MatchFields: []corev1.NodeSelectorRequirement{
-						{
-							Key:      "metadata.name",
-							Operator: corev1.NodeSelectorOpIn,
-							Values:   []string{node.Name},
-						},
-					},
-				})
-			// allow job to run at any taint Nodes that marked as NoSchedule
-			if templateCopy.Spec.Tolerations == nil {
-				templateCopy.Spec.Tolerations = []corev1.Toleration{}
-			}
-			templateCopy.Spec.Tolerations = append(templateCopy.Spec.Tolerations, corev1.Toleration{
-				Key:      "NoSchedule",
-				Operator: corev1.TolerationOpExists,
-			})
-
-			if len(templateCopy.Spec.Containers) > 0 {
-				if len(templateCopy.Spec.Containers[0].Env) == 0 {
-					templateCopy.Spec.Containers[0].Env = []corev1.EnvVar{}
-				}
-				templateCopy.Spec.Containers[0].Env = append(templateCopy.Spec.Containers[0].Env, corev1.EnvVar{
-					Name:  constants.NodeDiscoveryReportGPUNodeEnvName,
-					Value: gpuNode.Name,
-				})
-			}
-
-			// create node-discovery job
-			job := &batchv1.Job{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("node-discovery-%s", node.Name),
-					Namespace: utils.CurrentNamespace(),
-				},
-				Spec: batchv1.JobSpec{
-					TTLSecondsAfterFinished: ptr.To[int32](3600 * 10),
-					Template:                *templateCopy,
-				},
-			}
-			if err := r.Get(ctx, client.ObjectKeyFromObject(job), job); err != nil {
-				if errors.IsNotFound(err) {
-					if err := ctrl.SetControllerReference(pool, job, r.Scheme); err != nil {
-						return fmt.Errorf("set owner reference %w", err)
-					}
-					if err := r.Create(ctx, job); err != nil {
-						return fmt.Errorf("create node discovery job %w", err)
-					}
-				} else {
-					return fmt.Errorf("create node job %w", err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
 // SetupWithManager sets up the controller with the Manager.
 func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&tfv1.GPUPool{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("gpupool").
 		Owns(&batchv1.Job{}).
-		Watches(&tfv1.GPUNode{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []reconcile.Request {
-			requests := []reconcile.Request{}
-
-			node := obj.(*tfv1.GPUNode)
-			for labelKey := range node.Labels {
-				poolName, ok := strings.CutPrefix(labelKey, constants.GPUNodePoolIdentifierLabelPrefix)
-				if ok {
-					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{Name: poolName},
-					})
-				}
-			}
-			return requests
-		})).
 		Complete(r)
 }

@@ -18,22 +18,17 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
-	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,19 +61,6 @@ var _ = Describe("GPUPool Controller", func() {
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 
-			gpunode := &tfv1.GPUNode{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeNamespacedName.Name,
-					Labels: map[string]string{
-						fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, resourceName): "true",
-					},
-				},
-				Spec: tfv1.GPUNodeSpec{
-					ManageMode: tfv1.GPUNodeManageModeAutoSelect,
-				},
-			}
-			Expect(k8sClient.Create(ctx, gpunode)).To(Succeed())
-
 			node := &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: nodeNamespacedName.Name,
@@ -105,11 +87,6 @@ var _ = Describe("GPUPool Controller", func() {
 				},
 			})).To(Succeed())
 
-			Expect(k8sClient.Delete(ctx, &tfv1.GPUNode{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: nodeNamespacedName.Name,
-				},
-			})).To(Succeed())
 		})
 
 		It("should successfully reconcile the resource", func() {
@@ -125,13 +102,6 @@ var _ = Describe("GPUPool Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 
-			job := &batchv1.Job{}
-			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      fmt.Sprintf("node-discovery-%s", nodeNamespacedName.Name),
-				Namespace: utils.CurrentNamespace(),
-			}, job)).To(Succeed())
-
-			Expect(job.Spec.TTLSecondsAfterFinished).Should(Equal(ptr.To[int32](3600 * 10)))
 		})
 	})
 })

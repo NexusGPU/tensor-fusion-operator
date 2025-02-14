@@ -18,13 +18,20 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -36,10 +43,9 @@ var _ = Describe("GPUNode Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Namespace: "default",
 		}
 		gpunode := &tfv1.GPUNode{}
-
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind GPUNode")
 			err := k8sClient.Get(ctx, typeNamespacedName, gpunode)
@@ -48,15 +54,16 @@ var _ = Describe("GPUNode Controller", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
+						Labels: map[string]string{
+							fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, "mock"): "true",
+						},
 					},
-					// TODO(user): Specify other spec details if needed.
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
 
 		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
 			resource := &tfv1.GPUNode{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
@@ -64,19 +71,38 @@ var _ = Describe("GPUNode Controller", func() {
 			By("Cleanup the specific resource instance GPUNode")
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
+
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &GPUNodeReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:       k8sClient,
+				Scheme:       k8sClient.Scheme(),
+				GpuPoolState: config.NewMockGpuPoolState(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			By("Verify the finalizer is added")
+			Expect(k8sClient.Get(ctx, typeNamespacedName, gpunode)).To(Succeed())
+			Expect(gpunode.Finalizers).Should(ConsistOf(constants.Finalizer))
+
+			By("Verify the node discovery job is created")
+			job := &batchv1.Job{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("node-discovery-%s", gpunode.Name),
+				Namespace: utils.CurrentNamespace(),
+			}, job)).To(Succeed())
+			Expect(job.Spec.TTLSecondsAfterFinished).Should(Equal(ptr.To[int32](3600 * 10)))
+
+			By("Verify the hypervisor pod is created")
+			pod := &corev1.Pod{}
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("%s-%s-hypervisor", "mock", gpunode.Name),
+				Namespace: utils.CurrentNamespace(),
+			}, pod)).To(Succeed())
 		})
 	})
 })
