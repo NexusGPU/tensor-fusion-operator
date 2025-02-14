@@ -20,8 +20,8 @@
             "request": "launch",
             "mode": "auto",
             "env": {
-                "HOSTNAME": "iz0xij4pmbq2kgfhvkir32z",
-                "KUBECONFIG": "/Users/joeyyang/.kube/dev_us-east-1_demo",
+                "HOSTNAME": "mocknode",
+                "KUBECONFIG": "~/.kube/config",
             },
             "program": "${workspaceFolder}/cmd/nodediscovery/main.go",
         },
