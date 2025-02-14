@@ -104,9 +104,9 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	if !isProvisioningMode {
-		// TODO: move GPUNode CR creation here, rather than node_controller
-	}
+	// if !isProvisioningMode {
+	// TODO: move GPUNode CR creation here, rather than node_controller
+	// }
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
 
