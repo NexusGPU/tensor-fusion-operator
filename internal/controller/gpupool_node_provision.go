@@ -174,7 +174,8 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 			gpuNodeRes.Status.NodeInfo.IP = status.PrivateIP
 			gpuNodeRes.Status.NodeInfo.InstanceID = status.InstanceID
 			gpuNodeRes.Status.NodeInfo.Region = node.Region
-			r.Client.Status().Update(ctx, gpuNodeRes)
+			// TODO
+			_ = r.Client.Status().Update(ctx, gpuNodeRes)
 
 			r.Recorder.Eventf(pool, corev1.EventTypeNormal, "GPUNodeCreated", "Created node: %s, IP: %s", status.InstanceID, status.PrivateIP)
 		}(node)

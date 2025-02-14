@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -134,11 +133,6 @@ func main() {
 				},
 			},
 		}
-		_ = controllerutil.SetControllerReference(&tfv1.GPUNode{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: gpuNodeName,
-			},
-		}, gpu, reporter.Scheme)
 
 		gpuCopy := gpu.DeepCopy()
 		if err := r.Report(ctx, gpu, func() error {
