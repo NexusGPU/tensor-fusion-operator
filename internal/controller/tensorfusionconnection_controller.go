@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	scheduler "github.com/NexusGPU/tensor-fusion-operator/internal/scheduler"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
@@ -40,9 +39,8 @@ import (
 // TensorFusionConnectionReconciler reconciles a TensorFusionConnection object
 type TensorFusionConnectionReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	Scheduler    scheduler.Scheduler
-	GpuPoolState config.GpuPoolState
+	Scheme    *runtime.Scheme
+	Scheduler scheduler.Scheduler
 }
 
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -109,11 +107,11 @@ func (r *TensorFusionConnectionReconciler) Reconcile(ctx context.Context, req ct
 
 	// Start worker Pod
 	if connection.Status.Phase != tfv1.TensorFusionConnectionPending && gpu != nil {
-		gpuPoolState := r.GpuPoolState.Get(connection.Spec.PoolName)
-		if gpuPoolState == nil {
+		pool := &tfv1.GPUPool{}
+		if err := r.Get(ctx, client.ObjectKey{Name: connection.Spec.PoolName}, pool); err != nil {
 			return ctrl.Result{}, fmt.Errorf("gpu pool(%s) does not exist", connection.Spec.PoolName)
 		}
-		workerGenerator := &worker.WorkerGenerator{WorkerConfig: gpuPoolState.ComponentConfig.Worker}
+		workerGenerator := &worker.WorkerGenerator{WorkerConfig: pool.Spec.ComponentConfig.Worker}
 		// Start worker job
 		workerPod, err := r.tryStartWorker(ctx, workerGenerator, gpu, connection, client.ObjectKeyFromObject(connection))
 		if err != nil {

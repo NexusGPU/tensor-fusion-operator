@@ -55,10 +55,8 @@ var _ = Describe("TensorFusionPodMutator", func() {
 		decoder = admission.NewDecoder(scheme)
 		client = fake.NewClientBuilder().WithScheme(scheme).Build()
 
-		mockGpuPoolState := config.NewMockGpuPoolState()
 		mutator = &TensorFusionPodMutator{
-			Client:    client,
-			PoolState: mockGpuPoolState,
+			Client: client,
 		}
 		Expect(mutator.InjectDecoder(decoder)).To(Succeed())
 	})
@@ -195,8 +193,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 					},
 				},
 			}
-			mockGpuPoolState := config.NewMockGpuPoolState()
-			_, resources := ParseTFResources(mockGpuPoolState, pod)
+			_, resources := ParseTFResources(pod)
 			Expect(resources).To(HaveLen(1))
 			Expect(resources[0].ContainerName).To(Equal("test-container"))
 			Expect(resources[0].TflopsRequest.String()).To(Equal("10"))
@@ -217,9 +214,8 @@ var _ = Describe("TensorFusionPodMutator", func() {
 					},
 				},
 			}
-			mockGpuPoolState := config.NewMockGpuPoolState()
-			pool := mockGpuPoolState.Get("mock")
-			patch, err := mutator.patchTFClient(pod, pool.ComponentConfig.Client, []TFResource{{ContainerName: "test-container", TflopsRequest: resource.MustParse("100"), VramRequest: resource.MustParse("16Gi")}})
+
+			patch, err := mutator.patchTFClient(pod, config.MockGPUPoolSpec.ComponentConfig.Client, []TFResource{{ContainerName: "test-container", TflopsRequest: resource.MustParse("100"), VramRequest: resource.MustParse("16Gi")}})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(patch).NotTo(BeEmpty())
 			Expect(patch).To(HaveLen(2))

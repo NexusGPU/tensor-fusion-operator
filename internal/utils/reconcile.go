@@ -57,7 +57,7 @@ func CalculateExponentialBackoffWithJitter(retryCount int64) time.Duration {
 	const (
 		baseDelay  = 3 * time.Second
 		maxDelay   = 60 * time.Second
-		factor     = 1.5
+		factor     = 2.0
 		maxRetries = 10
 	)
 

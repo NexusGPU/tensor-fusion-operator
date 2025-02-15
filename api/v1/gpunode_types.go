@@ -57,6 +57,7 @@ type GPUNodeStatus struct {
 	// +kubebuilder:default=Pending
 	Phase TensorFusionGPUNodePhase `json:"phase"`
 
+	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	TotalTFlops resource.Quantity `json:"totalTFlops"`
@@ -68,19 +69,25 @@ type GPUNodeStatus struct {
 	AvailableTFlops resource.Quantity `json:"availableTFlops"`
 	AvailableVRAM   resource.Quantity `json:"availableVRAM"`
 
+	// +optional
 	HypervisorStatus NodeHypervisorStatus `json:"hypervisorStatus,omitempty"`
 
+	// +optional
 	NodeInfo GPUNodeInfo `json:"nodeInfo,omitempty"`
 
+	// +optional
 	LoadedModels []string `json:"loadedModels"`
 
-	TotalGPUs           int32    `json:"totalGPUs"`
-	ManagedGPUs         int32    `json:"managedGPUs"`
+	TotalGPUs   int32 `json:"totalGPUs"`
+	ManagedGPUs int32 `json:"managedGPUs"`
+
+	// +optional
 	ManagedGPUDeviceIDs []string `json:"managedGPUDeviceIDs,omitempty"`
 
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// Allocation details is for node compaction, and calculate used apps
+	// +optional
 	AllocationDetails []GPUNodeAllocationDetails `json:"allocationDetails"`
 }
 

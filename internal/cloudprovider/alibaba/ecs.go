@@ -43,6 +43,11 @@ func NewAliyunGPUNodeProvider(config tfv1.ComputingVendorConfig) (AliyunGPUNodeP
 	sk, err := common.GetAccessKeyOrSecretFromPath(
 		config.Params.SecretKeyPath,
 	)
+
+	if ak == "" || sk == "" {
+		return provider, fmt.Errorf("empty access key or secret key, can not create alicloud provider")
+	}
+
 	if err != nil {
 		return provider, err
 	}

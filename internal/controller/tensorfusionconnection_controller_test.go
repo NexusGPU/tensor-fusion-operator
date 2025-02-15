@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/scheduler"
 )
@@ -108,12 +107,11 @@ var _ = Describe("TensorFusionConnection Controller", func() {
 		})
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
-			gpuPoolState := config.NewMockGpuPoolState()
+
 			controllerReconciler := &TensorFusionConnectionReconciler{
-				Client:       k8sClient,
-				Scheme:       k8sClient.Scheme(),
-				GpuPoolState: gpuPoolState,
-				Scheduler:    scheduler,
+				Client:    k8sClient,
+				Scheme:    k8sClient.Scheme(),
+				Scheduler: scheduler,
 			}
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,

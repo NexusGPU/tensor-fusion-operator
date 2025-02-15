@@ -22,7 +22,6 @@ import (
 	"time"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	utils "github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -38,9 +37,9 @@ import (
 // GPUPoolReconciler reconciles a GPUPool object
 type GPUPoolReconciler struct {
 	client.Client
-	GpuPoolState config.GpuPoolState
-	Scheme       *runtime.Scheme
-	Recorder     record.EventRecorder
+
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpupools,verbs=get;list;watch;create;update;patch;delete
@@ -60,14 +59,12 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	pool := &tfv1.GPUPool{}
 	if err := r.Get(ctx, req.NamespacedName, pool); err != nil {
 		if errors.IsNotFound(err) {
-			r.GpuPoolState.Delete(pool.Name)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
 	deleted, err := utils.HandleFinalizer(ctx, pool, r.Client, func(ctx context.Context, pool *tfv1.GPUPool) error {
-		r.GpuPoolState.Delete(pool.Name)
 		// TODO: stop all existing workers and hypervisors, stop time series flow aggregations
 		return nil
 	})
@@ -85,9 +82,6 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// For provisioning mode, check if need to scale up GPUNodes upon AvailableCapacity changed
 	isProvisioningMode := pool.Spec.NodeManagerConfig.ProvisioningMode == tfv1.ProvisioningModeProvisioned
-
-	// sync the GPU Pool into memory, used by scheduler and mutation webhook
-	r.GpuPoolState.Set(pool.Name, &pool.Spec)
 
 	// Provisioning mode, check capacity and scale up if needed
 	if isProvisioningMode {

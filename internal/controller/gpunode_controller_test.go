@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -75,9 +74,8 @@ var _ = Describe("GPUNode Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &GPUNodeReconciler{
-				Client:       k8sClient,
-				Scheme:       k8sClient.Scheme(),
-				GpuPoolState: config.NewMockGpuPoolState(),
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

@@ -24,7 +24,6 @@ import (
 
 	cloudprovider "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
@@ -45,8 +44,7 @@ import (
 // GPUNodeReconciler reconciles a GPUNode object
 type GPUNodeReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	GpuPoolState config.GpuPoolState
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=tensor-fusion.ai,resources=gpunodes,verbs=get;list;watch;create;update;patch;delete
@@ -120,12 +118,22 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if node.Status.KubernetesNodeName == "" {
 		return ctrl.Result{}, nil
 	}
+	if poolName == "" {
+		log.Error(nil, "failed to get pool name", "node", node.Name)
+		return ctrl.Result{}, nil
+	}
 
-	if err := r.reconcileNodeDiscoveryJob(ctx, node, poolName); err != nil {
+	poolObj := &tfv1.GPUPool{}
+	err = r.Client.Get(ctx, client.ObjectKey{Name: poolName}, poolObj)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to get tensor-fusion pool, can not create node discovery job, pool: %s", poolName)
+	}
+
+	if err := r.reconcileNodeDiscoveryJob(ctx, node, poolObj); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if err := r.reconcileHypervisorPod(ctx, node, poolName); err != nil {
+	if err := r.reconcileHypervisorPod(ctx, node, poolObj); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -135,27 +143,20 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *GPUNodeReconciler) reconcileNodeDiscoveryJob(
 	ctx context.Context,
 	gpunode *tfv1.GPUNode,
-	poolName string,
+	pool *tfv1.GPUPool,
 ) error {
 	log := log.FromContext(ctx)
 	log.Info("starting node discovery job")
-	if poolName == "" {
-		return nil
-	}
-	pool := r.GpuPoolState.Get(poolName)
-	if pool == nil {
-		return fmt.Errorf("failed to get tensor-fusion pool, can not create node discovery job, pool: %s", poolName)
-	}
 
-	if pool.NodeManagerConfig == nil || pool.NodeManagerConfig.NodeSelector == nil {
+	if pool.Spec.NodeManagerConfig == nil || pool.Spec.NodeManagerConfig.NodeSelector == nil {
 		log.Info("missing NodeManagerConfig.nodeSelector config in pool spec, skipped")
 		return nil
 	}
-	if pool.ComponentConfig == nil || pool.ComponentConfig.NodeDiscovery.PodTemplate == nil {
+	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
 		return fmt.Errorf(`missing node discovery pod template in pool spec`)
 	}
 	podTmpl := &corev1.PodTemplate{}
-	err := json.Unmarshal(pool.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
+	err := json.Unmarshal(pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate.Raw, podTmpl)
 	if err != nil {
 		return fmt.Errorf("unmarshal pod template: %w", err)
 	}
@@ -228,18 +229,17 @@ func (r *GPUNodeReconciler) reconcileNodeDiscoveryJob(
 	return nil
 }
 
-func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode, poolName string) error {
-	if poolName == "" {
-		return nil
+func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tfv1.GPUNode, pool *tfv1.GPUPool) error {
+	if pool == nil {
+		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod")
 	}
+
+	poolName := pool.Name
 	namespace := utils.CurrentNamespace()
 	log := log.FromContext(ctx)
 	hypervisorPodName := fmt.Sprintf("%s-hypervisor", node.Name)
-	pool := r.GpuPoolState.Get(poolName)
-	if pool == nil {
-		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod, pool: %s", poolName)
-	}
-	hypervisorConfig := pool.ComponentConfig.Hypervisor
+
+	hypervisorConfig := pool.Spec.ComponentConfig.Hypervisor
 	podTmpl := &corev1.PodTemplate{}
 	err := json.Unmarshal(hypervisorConfig.PodTemplate.Raw, podTmpl)
 	if err != nil {

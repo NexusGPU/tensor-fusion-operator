@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/metrics"
 	webhookv1 "github.com/NexusGPU/tensor-fusion-operator/internal/webhook/v1"
@@ -41,8 +40,7 @@ import (
 // PodReconciler reconciles a Pod object
 type PodReconciler struct {
 	client.Client
-	PoolState config.GpuPoolState
-	Scheme    *runtime.Scheme
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
@@ -61,7 +59,7 @@ func (r *PodReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		log.Error(err, "Failed to get Pod")
 		return ctrl.Result{}, err
 	}
-	poolName, resources := webhookv1.ParseTFResources(r.PoolState, pod)
+	poolName, resources := webhookv1.ParseTFResources(pod)
 	if len(resources) == 0 {
 		return ctrl.Result{}, nil
 	}

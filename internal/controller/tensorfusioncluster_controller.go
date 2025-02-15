@@ -197,7 +197,6 @@ func (r *TensorFusionClusterReconciler) reconcileTimeSeriesDatabase(ctx context.
 }
 
 func (r *TensorFusionClusterReconciler) reconcileCloudVendorConnection(ctx context.Context, tfc *tfv1.TensorFusionCluster) (bool, error) {
-	// tfc.Spec.ComputingVendor.Type
 	if (tfc.Spec.ComputingVendor == nil) || (tfc.Spec.ComputingVendor.Type == "") {
 		return false, nil
 	}
@@ -382,11 +381,11 @@ func (r *TensorFusionClusterReconciler) checkTFClusterComponentsReady(ctx contex
 }
 
 func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Context, tfc *tfv1.TensorFusionCluster, prevStatus *tfv1.TensorFusionClusterStatus) error {
-	// Update the cluster status, ignore retryCount, keep other fields to compare
-	prevStatus.RetryCount = tfc.Status.RetryCount
-
-	if equality.Semantic.DeepEqual(tfc.Status, *prevStatus) {
-		return nil
+	// diff the status to ensure only changed status updated, ignore retryCount field since it's updated in the controller
+	if prevStatus != nil {
+		if equality.Semantic.DeepEqual(tfc.Status, *prevStatus) {
+			return nil
+		}
 	}
 	if err := r.Status().Update(ctx, tfc); err != nil {
 		r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())

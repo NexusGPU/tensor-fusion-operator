@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -35,13 +34,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	schedulingcorev1 "k8s.io/component-helpers/scheduling/corev1"
 )
 
 // PodReconciler reconciles a Pod object
 type NodeReconciler struct {
 	client.Client
-	PoolState config.GpuPoolState
-	Scheme    *runtime.Scheme
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
@@ -85,20 +85,33 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		}
 	} else {
 		// Select mode, GPU node is controlled by K8S node
-		gpuNode := r.generateGPUNode(ctx, node, r.PoolState)
-
-		// set owner reference to cascade delete
-		e := controllerutil.SetControllerReference(node, gpuNode, r.Scheme)
-		if e != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", e)
+		var poolList tfv1.GPUPoolList
+		if err := r.Client.List(ctx, &poolList); err != nil {
+			return ctrl.Result{}, fmt.Errorf("can not list gpuPool : %w", err)
 		}
-		_, e = controllerutil.CreateOrPatch(ctx, r.Client, gpuNode, nil)
+		pool, matched, err := getMatchedPoolName(node, poolList.Items)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !matched {
+			log.Info("No matched GPU pool found, skip reconcile the Node", "node", node.Name, "labels", node.Labels)
+			return ctrl.Result{}, nil
+		}
+
+		// TODO, if the GPU node exists, reconcile request indicate node has been changed, should sync node phase to GPUNode phase, so that to trigger the GPUPool and Cluster updates
+		gpuNode := r.generateGPUNode(node, pool)
+		// Set owner reference to cascade delete after GPU node created
+		if err := controllerutil.SetControllerReference(node, gpuNode, r.Scheme); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
+		}
+		_, e := controllerutil.CreateOrPatch(ctx, r.Client, gpuNode, nil)
 		if e != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
 		}
 
+		gpuNode.Status.Phase = tfv1.TensorFusionGPUNodePhasePending
 		gpuNode.Status.KubernetesNodeName = node.Name
-		if err := r.Client.Status().Patch(ctx, gpuNode, client.Merge); err != nil {
+		if err := r.Client.Status().Update(ctx, gpuNode); err != nil {
 			return ctrl.Result{}, fmt.Errorf("can not add Kubernetes Node info into gpuNode(%s) status : %w", gpuNode.Name, err)
 		}
 		log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
@@ -107,23 +120,20 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, nil
 }
 
-func (r *NodeReconciler) generateGPUNode(ctx context.Context, node *corev1.Node, poolState config.GpuPoolState) *tfv1.GPUNode {
-	poolName, err := poolState.GetMatchedPoolName(node)
-	if err != nil {
-		log.FromContext(ctx).Info("No matched GPU pool", "node", node.Name, "labels", node.Labels)
-		return nil
-	}
+func (r *NodeReconciler) generateGPUNode(node *corev1.Node, pool *tfv1.GPUPool) *tfv1.GPUNode {
 	gpuNode := &tfv1.GPUNode{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: node.Name,
 			Labels: map[string]string{
-				fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, poolName): "true",
+				fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name): "true",
 			},
 		},
 		Spec: tfv1.GPUNodeSpec{
 			ManageMode: tfv1.GPUNodeManageModeAutoSelect,
 		},
 	}
+
+	_ = controllerutil.SetOwnerReference(pool, gpuNode, r.Scheme)
 	return gpuNode
 }
 
@@ -147,6 +157,19 @@ func (r *NodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&corev1.Node{}, builder.WithPredicates(p)).
 		Named("node").
 		Complete(r)
-	// When Pool changed, all nodes should re-generated, delete not matched ones
-	//
+	// TODO: When Pool changed, all nodes should re-generated, delete not matched ones, this logic should be added into GPUPool controller
+}
+
+func getMatchedPoolName(node *corev1.Node, poolList []tfv1.GPUPool) (*tfv1.GPUPool, bool, error) {
+	for _, pool := range poolList {
+		matches, err := schedulingcorev1.MatchNodeSelectorTerms(node, pool.Spec.NodeManagerConfig.NodeSelector)
+		if err != nil {
+			return nil, false, err
+		}
+
+		if matches {
+			return &pool, true, nil
+		}
+	}
+	return nil, false, nil
 }

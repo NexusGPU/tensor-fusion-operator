@@ -26,7 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -118,8 +117,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	mockGpuPoolState := config.NewMockGpuPoolState()
-	err = SetupPodWebhookWithManager(mgr, mockGpuPoolState)
+	err = SetupPodWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:webhook

@@ -33,31 +33,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
-	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/constants"
 	"github.com/lithammer/shortuuid/v4"
 	"github.com/samber/lo"
 )
 
 // SetupPodWebhookWithManager registers the webhook for Pod in the manager.
-func SetupPodWebhookWithManager(mgr ctrl.Manager, poolState config.GpuPoolState) error {
+func SetupPodWebhookWithManager(mgr ctrl.Manager) error {
 	webhookServer := mgr.GetWebhookServer()
 
 	webhookServer.Register("/mutate-v1-pod",
 		&admission.Webhook{
 			Handler: &TensorFusionPodMutator{
-				PoolState: poolState,
-				decoder:   admission.NewDecoder(runtime.NewScheme()),
-				Client:    mgr.GetClient(),
+				decoder: admission.NewDecoder(runtime.NewScheme()),
+				Client:  mgr.GetClient(),
 			},
 		})
 	return nil
 }
 
 type TensorFusionPodMutator struct {
-	Client    client.Client
-	PoolState config.GpuPoolState
-	decoder   admission.Decoder
+	Client  client.Client
+	decoder admission.Decoder
 }
 
 // Handle implements admission.Handler interface.
@@ -70,18 +67,18 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 	log := log.FromContext(ctx)
 	log.Info("Mutating pod", "generateName", pod.GenerateName, "namespace", pod.Namespace)
 
-	poolName, resources := ParseTFResources(m.PoolState, pod)
+	poolName, resources := ParseTFResources(pod)
 	if len(resources) == 0 {
 		return admission.Allowed("no tensor fusion requirements found")
 	}
 
-	gpuPoolSpec := m.PoolState.Get(poolName)
-	if gpuPoolSpec == nil {
+	pool := &tfv1.GPUPool{}
+	if err := m.Client.Get(ctx, client.ObjectKey{Name: poolName}, pool); err != nil {
 		return admission.Errored(http.StatusInternalServerError, fmt.Errorf("gpu pool(%s) does not exist", poolName))
 	}
 
 	// 1. Inject initContainer and env variables
-	patches, err := m.patchTFClient(pod, gpuPoolSpec.ComponentConfig.Client, resources)
+	patches, err := m.patchTFClient(pod, pool.Spec.ComponentConfig.Client, resources)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -105,7 +102,7 @@ type TFResource struct {
 	VramLimit           resource.Quantity
 }
 
-func ParseTFResources(poolState config.GpuPoolState, pod *corev1.Pod) (poolName string, resources []TFResource) {
+func ParseTFResources(pod *corev1.Pod) (poolName string, resources []TFResource) {
 	if pod.Annotations == nil {
 		return "", nil
 	}

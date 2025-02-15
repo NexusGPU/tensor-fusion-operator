@@ -56,7 +56,7 @@ var _ = Describe("GPUPool Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					Spec: config.MockGpuPoolSpec,
+					Spec: *config.MockGPUPoolSpec,
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
@@ -92,9 +92,8 @@ var _ = Describe("GPUPool Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &GPUPoolReconciler{
-				Client:       k8sClient,
-				Scheme:       k8sClient.Scheme(),
-				GpuPoolState: config.NewGpuPoolStateImpl(),
+				Client: k8sClient,
+				Scheme: k8sClient.Scheme(),
 			}
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{

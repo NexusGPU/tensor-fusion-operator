@@ -75,3 +75,8 @@ agent:
     limits:
       cpu: 1000m
       memory: 512Mi
+
+# Only needed if your pool is running in Provisioned mode, and the cloud vendor doesn't support IRSA or any serviceAccount like zero-credential Auth approaches
+cloudVendorCredentials:
+  accessKey: "dummy"
+  secretKey: "dummy"
