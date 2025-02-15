@@ -33,14 +33,14 @@ func init() {
 }
 
 func main() {
-	var hostname string
+	var k8sNodeName string
 
 	var gpuInfoConfig string
-	flag.StringVar(&hostname, "hostname", "", "hostname")
+	flag.StringVar(&k8sNodeName, "hostname", "", "hostname")
 	flag.StringVar(&gpuInfoConfig, "gpu-info-config", "", "specify the path to gpuInfoConfig file")
 
-	if hostname == "" {
-		hostname = os.Getenv("HOSTNAME")
+	if k8sNodeName == "" {
+		k8sNodeName = os.Getenv("HOSTNAME")
 	}
 
 	k8sclient, err := kubeClient()
@@ -51,7 +51,7 @@ func main() {
 
 	gpuNodeName := os.Getenv(constants.NodeDiscoveryReportGPUNodeEnvName)
 	if gpuNodeName == "" {
-		gpuNodeName = hostname
+		gpuNodeName = k8sNodeName
 	}
 
 	opts := zap.Options{
@@ -154,7 +154,7 @@ func main() {
 			UUID:     uuid,
 			GPUModel: deviceName,
 			NodeSelector: map[string]string{
-				"kubernetes.io/hostname": hostname,
+				"kubernetes.io/hostname": k8sNodeName,
 			},
 		}
 		_, err = controllerutil.CreateOrUpdate(ctx, k8sclient, gpu, func() error { return nil })
@@ -181,7 +181,7 @@ func main() {
 		availableVRAM.Add(gpu.Status.Available.Vram)
 	}
 
-	ns := nodeStatus(hostname)
+	ns := nodeStatus(k8sNodeName)
 	ns.TotalTFlops = totalTFlops
 	ns.TotalVRAM = totalVRAM
 	ns.AvailableTFlops = availableTFlops
@@ -193,9 +193,9 @@ func main() {
 	}
 }
 
-func nodeStatus(hostname string) *tfv1.GPUNodeStatus {
+func nodeStatus(k8sNodeName string) *tfv1.GPUNodeStatus {
 	return &tfv1.GPUNodeStatus{
-		KubernetesNodeName: hostname,
+		KubernetesNodeName: k8sNodeName,
 		Phase:              tfv1.TensorFusionGPUNodePhaseRunning,
 	}
 }

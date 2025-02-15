@@ -148,15 +148,7 @@ func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Con
 				return
 			}
 			// Update GPUNode status to set the resource quantity
-			gpuNodeRes.Status = tfv1.GPUNodeStatus{
-				Phase:               tfv1.TensorFusionGPUNodePhasePending,
-				TotalTFlops:         node.TFlopsOffered,
-				TotalVRAM:           node.VRAMOffered,
-				TotalGPUs:           node.GPUDeviceOffered,
-				AllocationDetails:   []tfv1.GPUNodeAllocationDetails{},
-				LoadedModels:        []string{},
-				ManagedGPUDeviceIDs: []string{},
-			}
+			gpuNodeRes.InitializeStatus(node.TFlopsOffered, node.VRAMOffered, node.GPUDeviceOffered)
 			if err := r.Client.Status().Patch(ctx, gpuNodeRes, client.Merge); err != nil {
 				errList = append(errList, err)
 				return

@@ -234,7 +234,6 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 		return fmt.Errorf("failed to get tensor-fusion pool, can not create hypervisor pod")
 	}
 
-	poolName := pool.Name
 	namespace := utils.CurrentNamespace()
 	log := log.FromContext(ctx)
 	hypervisorPodName := fmt.Sprintf("%s-hypervisor", node.Name)
@@ -255,7 +254,7 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 			Name:      hypervisorPodName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, poolName): "true",
+				fmt.Sprintf(constants.GPUNodePoolIdentifierLabelFormat, pool.Name): "true",
 			},
 		},
 		Spec: *spec,
