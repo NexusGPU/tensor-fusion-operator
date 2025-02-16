@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
+	"github.com/NexusGPU/tensor-fusion-operator/internal/config"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/utils"
 	corev1 "k8s.io/api/core/v1"
 	// +kubebuilder:scaffold:imports
@@ -97,6 +98,14 @@ var _ = BeforeSuite(func() {
 			Name: utils.CurrentNamespace(),
 		},
 	})).NotTo(HaveOccurred())
+
+	pool := &tfv1.GPUPool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mock",
+		},
+		Spec: *config.MockGPUPoolSpec,
+	}
+	Expect(k8sClient.Create(ctx, pool)).To(Succeed())
 })
 
 var _ = AfterSuite(func() {

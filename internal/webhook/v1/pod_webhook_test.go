@@ -67,6 +67,9 @@ var _ = Describe("TensorFusionPodMutator", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-pod",
 					Namespace: "default",
+					Labels: map[string]string{
+						constants.TensorFusionEnabledLabelKey: "true",
+					},
 					Annotations: map[string]string{
 						constants.GpuPoolAnnotationKey:                               "mock",
 						fmt.Sprintf(constants.TFLOPSRequestAnnotationFormat, "main"): "10",

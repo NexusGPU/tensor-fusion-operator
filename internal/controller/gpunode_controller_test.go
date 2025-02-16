@@ -59,6 +59,9 @@ var _ = Describe("GPUNode Controller", func() {
 					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
+				resource.Status.KubernetesNodeName = resource.Name
+				resource.Status.Phase = tfv1.TensorFusionGPUNodePhaseRunning
+				Expect(k8sClient.Status().Update(ctx, resource)).To(Succeed())
 			}
 		})
 
@@ -98,7 +101,7 @@ var _ = Describe("GPUNode Controller", func() {
 			By("Verify the hypervisor pod is created")
 			pod := &corev1.Pod{}
 			Expect(k8sClient.Get(ctx, types.NamespacedName{
-				Name:      fmt.Sprintf("%s-%s-hypervisor", "mock", gpunode.Name),
+				Name:      fmt.Sprintf("hypervisor-%s", gpunode.Name),
 				Namespace: utils.CurrentNamespace(),
 			}, pod)).To(Succeed())
 		})
