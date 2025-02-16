@@ -37,9 +37,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // GPUNodeReconciler reconciles a GPUNode object
@@ -172,10 +174,6 @@ func (r *GPUNodeReconciler) reconcileNodeDiscoveryJob(
 	log := log.FromContext(ctx)
 	log.Info("starting node discovery job")
 
-	if pool.Spec.NodeManagerConfig == nil || pool.Spec.NodeManagerConfig.NodeSelector == nil {
-		log.Info("missing NodeManagerConfig.nodeSelector config in pool spec, skipped")
-		return nil
-	}
 	if pool.Spec.ComponentConfig == nil || pool.Spec.ComponentConfig.NodeDiscovery.PodTemplate == nil {
 		return fmt.Errorf(`missing node discovery pod template in pool spec`)
 	}
@@ -329,7 +327,7 @@ func (r *GPUNodeReconciler) CalculateVirtualCapacity(node *tfv1.GPUNode, pool *t
 // SetupWithManager sets up the controller with the Manager.
 func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&tfv1.GPUNode{}).
+		For(&tfv1.GPUNode{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("gpunode").
 		Owns(&corev1.Node{}).
 		Owns(&batchv1.Job{}).

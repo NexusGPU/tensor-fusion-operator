@@ -170,7 +170,7 @@ func main() {
 			gpu.Status.Available = available
 		}
 
-		if err := k8sclient.Status().Update(ctx, gpu); err != nil {
+		if err := k8sclient.Status().Patch(ctx, gpu, client.Merge); err != nil {
 			ctrl.Log.Error(err, "failed to update status of GPU", "gpu", gpu)
 			os.Exit(1)
 		}
@@ -187,7 +187,7 @@ func main() {
 	ns.AvailableTFlops = availableTFlops
 	ns.AvailableVRAM = availableVRAM
 	gpunode.Status = *ns
-	if err := k8sclient.Status().Update(ctx, gpunode); err != nil {
+	if err := k8sclient.Status().Patch(ctx, gpunode, client.Merge); err != nil {
 		ctrl.Log.Error(err, "failed to update status of GPUNode")
 		os.Exit(1)
 	}

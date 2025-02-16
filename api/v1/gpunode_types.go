@@ -76,7 +76,7 @@ type GPUNodeStatus struct {
 	NodeInfo GPUNodeInfo `json:"nodeInfo,omitempty"`
 
 	// +optional
-	LoadedModels []string `json:"loadedModels"`
+	LoadedModels *[]string `json:"loadedModels,omitempty"`
 
 	TotalGPUs   int32 `json:"totalGPUs"`
 	ManagedGPUs int32 `json:"managedGPUs"`
@@ -88,7 +88,7 @@ type GPUNodeStatus struct {
 
 	// Allocation details is for node compaction, and calculate used apps
 	// +optional
-	AllocationDetails []GPUNodeAllocationDetails `json:"allocationDetails"`
+	AllocationDetails *[]GPUNodeAllocationDetails `json:"allocationDetails,omitempty"`
 }
 
 type GPUNodeAllocationDetails struct {

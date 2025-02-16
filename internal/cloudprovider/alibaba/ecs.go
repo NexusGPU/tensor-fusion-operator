@@ -237,6 +237,9 @@ func handleNodeClassAndExtraParams(request *ecs.RunInstancesRequest, param *type
 			request.SpotInterruptionBehavior = param.ExtraParams["spotInterruptionBehavior"]
 		}
 	}
+	if param.ExtraParams["keyPairName"] != "" {
+		request.KeyPairName = param.ExtraParams["keyPairName"]
+	}
 	if param.ExtraParams["systemDiskCategory"] != "" {
 		request.SystemDiskCategory = param.ExtraParams["systemDiskCategory"]
 	} else {

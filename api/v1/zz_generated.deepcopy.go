@@ -687,8 +687,12 @@ func (in *GPUNodeStatus) DeepCopyInto(out *GPUNodeStatus) {
 	in.NodeInfo.DeepCopyInto(&out.NodeInfo)
 	if in.LoadedModels != nil {
 		in, out := &in.LoadedModels, &out.LoadedModels
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.ManagedGPUDeviceIDs != nil {
 		in, out := &in.ManagedGPUDeviceIDs, &out.ManagedGPUDeviceIDs
@@ -697,9 +701,13 @@ func (in *GPUNodeStatus) DeepCopyInto(out *GPUNodeStatus) {
 	}
 	if in.AllocationDetails != nil {
 		in, out := &in.AllocationDetails, &out.AllocationDetails
-		*out = make([]GPUNodeAllocationDetails, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]GPUNodeAllocationDetails)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]GPUNodeAllocationDetails, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 }

@@ -12,8 +12,8 @@ func (node *GPUNode) InitializeStatus(initTFlops, initVRAM resource.Quantity, in
 		TotalTFlops:         initTFlops,
 		TotalVRAM:           initVRAM,
 		TotalGPUs:           initGPUs,
-		AllocationDetails:   []GPUNodeAllocationDetails{},
-		LoadedModels:        []string{},
+		AllocationDetails:   &[]GPUNodeAllocationDetails{},
+		LoadedModels:        &[]string{},
 		ManagedGPUDeviceIDs: []string{},
 		ObservedGeneration:  node.Generation,
 	}

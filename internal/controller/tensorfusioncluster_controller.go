@@ -387,7 +387,7 @@ func (r *TensorFusionClusterReconciler) updateTFClusterStatus(ctx context.Contex
 			return nil
 		}
 	}
-	if err := r.Status().Update(ctx, tfc); err != nil {
+	if err := r.Status().Patch(ctx, tfc, client.Merge); err != nil {
 		r.Recorder.Eventf(tfc, corev1.EventTypeWarning, "UpdateClusterStatusError", err.Error())
 		return err
 	}

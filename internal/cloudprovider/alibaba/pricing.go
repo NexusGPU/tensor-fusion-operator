@@ -33,7 +33,7 @@ func init() {
 			MemoryGiB: 15,
 
 			FP16TFlopsPerGPU:    65,
-			VRAMGigabytesPerGPU: 16,
+			VRAMGigabytesPerGPU: 15,
 
 			GPUModel:        "NVIDIA T4",
 			GPUCount:        1,
@@ -49,7 +49,7 @@ func init() {
 			MemoryGiB: 31,
 
 			FP16TFlopsPerGPU:    65,
-			VRAMGigabytesPerGPU: 16,
+			VRAMGigabytesPerGPU: 15,
 
 			GPUModel:        "NVIDIA T4",
 			GPUCount:        1,
@@ -65,7 +65,7 @@ func init() {
 			MemoryGiB: 60,
 
 			FP16TFlopsPerGPU:    65,
-			VRAMGigabytesPerGPU: 16,
+			VRAMGigabytesPerGPU: 15,
 
 			GPUModel:        "NVIDIA T4",
 			GPUCount:        1,
