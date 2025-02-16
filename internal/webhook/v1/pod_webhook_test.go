@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -53,7 +52,7 @@ var _ = Describe("TensorFusionPodMutator", func() {
 		Expect(tfv1.AddToScheme(scheme)).To(Succeed())
 
 		decoder = admission.NewDecoder(scheme)
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		client = k8sClient
 
 		mutator = &TensorFusionPodMutator{
 			Client: client,
