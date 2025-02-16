@@ -102,23 +102,16 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		// Skip creation if the GPUNode already exists
 		gpuNode := &tfv1.GPUNode{}
 		if err := r.Client.Get(ctx, client.ObjectKey{Name: node.Name}, gpuNode); err != nil {
-			if errors.IsNotFound(err) || gpuNode.Status.KubernetesNodeName == "" {
-				newGPUNode := r.generateGPUNode(node, pool)
+			if errors.IsNotFound(err) {
+				gpuNode = r.generateGPUNode(node, pool)
 				// Set owner reference to cascade delete after GPU node created
-				if err := controllerutil.SetControllerReference(node, newGPUNode, r.Scheme); err != nil {
+				if err := controllerutil.SetControllerReference(node, gpuNode, r.Scheme); err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
 				}
-				_, e := controllerutil.CreateOrUpdate(ctx, r.Client, newGPUNode, nil)
+				_, e := controllerutil.CreateOrUpdate(ctx, r.Client, gpuNode, nil)
 				if e != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
 				}
-
-				newGPUNode.InitializeStatus(resource.Quantity{}, resource.Quantity{}, 0)
-				newGPUNode.Status.KubernetesNodeName = node.Name
-				if err := r.Client.Status().Update(ctx, newGPUNode); err != nil {
-					return ctrl.Result{}, fmt.Errorf("can not add Kubernetes Node info into gpuNode(%s) status : %w", newGPUNode.Name, err)
-				}
-				log.Info("Created GPUNode due to selector matched", "name", newGPUNode.Name)
 			}
 		} else {
 			// GPUNode resource already exists, indicate node has been changed
@@ -128,6 +121,15 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			if err := r.Client.Update(ctx, gpuNode); err != nil {
 				return ctrl.Result{}, fmt.Errorf("can not update gpuNode(%s) annotation : %w", gpuNode.Name, err)
 			}
+		}
+
+		if gpuNode.Status.KubernetesNodeName == "" {
+			gpuNode.InitializeStatus(resource.Quantity{}, resource.Quantity{}, 0)
+			gpuNode.Status.KubernetesNodeName = node.Name
+			if err := r.Client.Status().Update(ctx, gpuNode); err != nil {
+				return ctrl.Result{}, fmt.Errorf("can not add Kubernetes Node info into gpuNode(%s) status : %w", gpuNode.Name, err)
+			}
+			log.Info("Created GPUNode due to selector matched", "name", gpuNode.Name)
 		}
 	}
 

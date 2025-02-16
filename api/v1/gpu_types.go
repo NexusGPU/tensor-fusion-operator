@@ -55,9 +55,9 @@ const (
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:printcolumn:name="GPU Model",type="string",JSONPath=".spec.gpuModel"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase"
-// +kubebuilder:printcolumn:name="Total TFlops",type="string",JSONPath=".status.capacity.flops"
+// +kubebuilder:printcolumn:name="Total TFlops",type="string",JSONPath=".status.capacity.tflops"
 // +kubebuilder:printcolumn:name="Total VRAM",type="string",JSONPath=".status.capacity.vram"
-// +kubebuilder:printcolumn:name="Available TFlops",type="string",JSONPath=".status.available.flops"
+// +kubebuilder:printcolumn:name="Available TFlops",type="string",JSONPath=".status.available.tflops"
 // +kubebuilder:printcolumn:name="Available VRAM",type="string",JSONPath=".status.available.vram"
 // +kubebuilder:printcolumn:name="Device UUID",type="string",JSONPath=".status.uuid"
 // GPU is the Schema for the gpus API.
