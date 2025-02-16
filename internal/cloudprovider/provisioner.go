@@ -6,7 +6,7 @@ import (
 	tfv1 "github.com/NexusGPU/tensor-fusion-operator/api/v1"
 	"github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/types"
 
-	aliyun "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/alibaba"
+	alibaba "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/alibaba"
 	aws "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/aws"
 	mock "github.com/NexusGPU/tensor-fusion-operator/internal/cloudprovider/mock"
 )
@@ -17,8 +17,8 @@ func GetProvider(config tfv1.ComputingVendorConfig) (*types.GPUNodeProvider, err
 	switch config.Type {
 	case "aws":
 		provider, err = aws.NewAWSGPUNodeProvider(config)
-	case "aliyun":
-		provider, err = aliyun.NewAliyunGPUNodeProvider(config)
+	case "alibaba":
+		provider, err = alibaba.NewAlibabaGPUNodeProvider(config)
 	case "mock":
 		provider, err = mock.NewMockGPUNodeProvider(config)
 	default:

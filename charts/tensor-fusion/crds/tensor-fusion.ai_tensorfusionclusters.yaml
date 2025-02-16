@@ -115,7 +115,7 @@ spec:
                     - openshift
                     - vultr
                     - together-ai
-                    - aliyun
+                    - alibaba
                     - nvidia
                     - tencent
                     - runpod

@@ -79,11 +79,11 @@ func init() {
 	}
 }
 
-func (p AliyunGPUNodeProvider) GetGPUNodeInstanceTypeInfo(region string) []types.GPUNodeInstanceInfo {
+func (p AlibabaGPUNodeProvider) GetGPUNodeInstanceTypeInfo(region string) []types.GPUNodeInstanceInfo {
 	return GPUInstanceTypeInfo
 }
 
-func (p AliyunGPUNodeProvider) GetInstancePricing(instanceType string, region string, capacityType types.CapacityTypeEnum) (float64, error) {
+func (p AlibabaGPUNodeProvider) GetInstancePricing(instanceType string, region string, capacityType types.CapacityTypeEnum) (float64, error) {
 	discountRatio := 1.0
 	if ratio, ok := RegionCostDifferenceRatio[region]; ok {
 		discountRatio = ratio

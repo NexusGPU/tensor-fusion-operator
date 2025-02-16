@@ -18,13 +18,13 @@ import (
 
 var cachedClient *ecs.Client
 
-type AliyunGPUNodeProvider struct {
+type AlibabaGPUNodeProvider struct {
 	client *ecs.Client
 }
 
-func NewAliyunGPUNodeProvider(config tfv1.ComputingVendorConfig) (AliyunGPUNodeProvider, error) {
+func NewAlibabaGPUNodeProvider(config tfv1.ComputingVendorConfig) (AlibabaGPUNodeProvider, error) {
 
-	var provider AliyunGPUNodeProvider
+	var provider AlibabaGPUNodeProvider
 
 	if cachedClient != nil {
 		provider.client = cachedClient
@@ -68,7 +68,7 @@ func NewAliyunGPUNodeProvider(config tfv1.ComputingVendorConfig) (AliyunGPUNodeP
 	return provider, nil
 }
 
-func (p AliyunGPUNodeProvider) TestConnection() error {
+func (p AlibabaGPUNodeProvider) TestConnection() error {
 	request := ecs.CreateDescribeRegionsRequest()
 	_, err := p.client.DescribeRegions(request)
 	if err != nil {
@@ -78,7 +78,7 @@ func (p AliyunGPUNodeProvider) TestConnection() error {
 	return nil
 }
 
-func (p AliyunGPUNodeProvider) CreateNode(ctx context.Context, param *types.NodeCreationParam) (*types.GPUNodeStatus, error) {
+func (p AlibabaGPUNodeProvider) CreateNode(ctx context.Context, param *types.NodeCreationParam) (*types.GPUNodeStatus, error) {
 	nodeClass := param.NodeClass.Spec
 	request := ecs.CreateRunInstancesRequest()
 	request.LaunchTemplateId = nodeClass.LaunchTemplate.ID
@@ -126,7 +126,7 @@ func (p AliyunGPUNodeProvider) CreateNode(ctx context.Context, param *types.Node
 	}, nil
 }
 
-func (p AliyunGPUNodeProvider) TerminateNode(ctx context.Context, param *types.NodeIdentityParam) error {
+func (p AlibabaGPUNodeProvider) TerminateNode(ctx context.Context, param *types.NodeIdentityParam) error {
 	request := ecs.CreateDeleteInstanceRequest()
 	request.InstanceId = param.InstanceID
 	request.RegionId = param.Region
@@ -140,7 +140,7 @@ func (p AliyunGPUNodeProvider) TerminateNode(ctx context.Context, param *types.N
 	return nil
 }
 
-func (p AliyunGPUNodeProvider) GetNodeStatus(ctx context.Context, param *types.NodeIdentityParam) (*types.GPUNodeStatus, error) {
+func (p AlibabaGPUNodeProvider) GetNodeStatus(ctx context.Context, param *types.NodeIdentityParam) (*types.GPUNodeStatus, error) {
 	request := ecs.CreateDescribeInstancesRequest()
 	request.InstanceIds = fmt.Sprintf("[\"%s\"]", param.InstanceID)
 	response, err := p.client.DescribeInstances(request)

@@ -236,7 +236,7 @@ func (r *GPUNodeReconciler) reconcileHypervisorPod(ctx context.Context, node *tf
 
 	namespace := utils.CurrentNamespace()
 	log := log.FromContext(ctx)
-	hypervisorPodName := fmt.Sprintf("%s-hypervisor", node.Name)
+	hypervisorPodName := fmt.Sprintf("hypervisor-%s", node.Name)
 
 	hypervisorConfig := pool.Spec.ComponentConfig.Hypervisor
 	podTmpl := &corev1.PodTemplate{}
@@ -309,5 +309,6 @@ func (r *GPUNodeReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("gpunode").
 		Owns(&corev1.Node{}).
 		Owns(&batchv1.Job{}).
+		Owns(&corev1.Pod{}).
 		Complete(r)
 }

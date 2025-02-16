@@ -126,7 +126,7 @@ const (
 	AuthTypeServiceAccountRole AuthTypeEnum = "serviceAccountRole"
 )
 
-// +kubebuilder:validation:Enum=aws;lambda-labs;gcp;azure;oracle-oci;ibm;openshift;vultr;together-ai;aliyun;nvidia;tencent;runpod;mock
+// +kubebuilder:validation:Enum=aws;lambda-labs;gcp;azure;oracle-oci;ibm;openshift;vultr;together-ai;alibaba;nvidia;tencent;runpod;mock
 type ComputingVendorName string
 
 const (
@@ -139,7 +139,7 @@ const (
 	ComputingVendorVultr      ComputingVendorName = "vultr"
 	ComputingVendorTogetherAI ComputingVendorName = "together-ai"
 	ComputingVendorLambdaLabs ComputingVendorName = "lambda-labs"
-	ComputingVendorAliyun     ComputingVendorName = "aliyun"
+	ComputingVendorAlibaba    ComputingVendorName = "alibaba"
 	ComputingVendorNvidia     ComputingVendorName = "nvidia"
 	ComputingVendorTencent    ComputingVendorName = "tencent"
 	ComputingVendorRunPod     ComputingVendorName = "runpod"
