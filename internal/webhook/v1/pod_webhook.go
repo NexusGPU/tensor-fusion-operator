@@ -69,6 +69,7 @@ func (m *TensorFusionPodMutator) Handle(ctx context.Context, req admission.Reque
 
 	poolName, resources := ParseTFResources(pod)
 	if len(resources) == 0 {
+		log.Info("No tensor fusion requirements found for pod", pod.Name, "namespace: ", pod.Namespace)
 		return admission.Allowed("no tensor fusion requirements found")
 	}
 
