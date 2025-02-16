@@ -43,7 +43,7 @@ func main() {
 		hostname = os.Getenv("HOSTNAME")
 	}
 
-	client, err := kubeClient()
+	k8sclient, err := kubeClient()
 	if err != nil {
 		ctrl.Log.Error(err, "unable to create kubeClient")
 		os.Exit(1)
@@ -88,6 +88,16 @@ func main() {
 	}
 
 	ctx := context.Background()
+	gpunode := &tfv1.GPUNode{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: gpuNodeName,
+		},
+	}
+	if err := k8sclient.Get(ctx, client.ObjectKeyFromObject(gpunode), gpunode); err != nil {
+		ctrl.Log.Error(err, "unable to get gpuNode")
+		os.Exit(1)
+	}
+
 	totalTFlops := resource.MustParse("0")
 	totalVRAM := resource.MustParse("0Ki")
 	availableTFlops := resource.MustParse("0")
@@ -130,6 +140,11 @@ func main() {
 			},
 		}
 
+		if err := controllerutil.SetOwnerReference(gpunode, gpu, Scheme); err != nil {
+			ctrl.Log.Error(err, "failed to set owner reference")
+			os.Exit(1)
+		}
+
 		gpuStatus := tfv1.GPUStatus{
 			Phase: tfv1.TensorFusionGPUPhaseRunning,
 			Capacity: &tfv1.Resource{
@@ -142,7 +157,7 @@ func main() {
 				"kubernetes.io/hostname": hostname,
 			},
 		}
-		_, err := controllerutil.CreateOrUpdate(ctx, client, gpu, func() error { return nil })
+		_, err = controllerutil.CreateOrUpdate(ctx, k8sclient, gpu, func() error { return nil })
 		if err != nil {
 			ctrl.Log.Error(err, "failed to create GPU", "gpu", gpu)
 			os.Exit(1)
@@ -155,7 +170,7 @@ func main() {
 			gpu.Status.Available = available
 		}
 
-		if err := client.Status().Update(ctx, gpu); err != nil {
+		if err := k8sclient.Status().Update(ctx, gpu); err != nil {
 			ctrl.Log.Error(err, "failed to update status of GPU", "gpu", gpu)
 			os.Exit(1)
 		}
@@ -171,13 +186,8 @@ func main() {
 	ns.TotalVRAM = totalVRAM
 	ns.AvailableTFlops = availableTFlops
 	ns.AvailableVRAM = availableVRAM
-
-	if err := client.Status().Update(ctx, &tfv1.GPUNode{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: gpuNodeName,
-		},
-		Status: *ns,
-	}); err != nil {
+	gpunode.Status = *ns
+	if err := k8sclient.Status().Update(ctx, gpunode); err != nil {
 		ctrl.Log.Error(err, "failed to update status of GPUNode")
 		os.Exit(1)
 	}
