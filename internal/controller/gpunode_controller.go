@@ -123,7 +123,7 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	// Only reconcile if the node has a kubernetes node name, otherwise the DaemonSet like workloads can not be scheduled
 	if node.Status.KubernetesNodeName == "" {
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	if poolName == "" {
 		log.Error(nil, "failed to get pool name", "node", node.Name)

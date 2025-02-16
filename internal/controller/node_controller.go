@@ -102,13 +102,13 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		// Skip creation if the GPUNode already exists
 		gpuNode := &tfv1.GPUNode{}
 		if err := r.Client.Get(ctx, client.ObjectKey{Name: node.Name}, gpuNode); err != nil {
-			if errors.IsNotFound(err) {
+			if errors.IsNotFound(err) || gpuNode.Status.KubernetesNodeName == "" {
 				newGPUNode := r.generateGPUNode(node, pool)
 				// Set owner reference to cascade delete after GPU node created
 				if err := controllerutil.SetControllerReference(node, newGPUNode, r.Scheme); err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
 				}
-				_, e := controllerutil.CreateOrPatch(ctx, r.Client, newGPUNode, nil)
+				_, e := controllerutil.CreateOrUpdate(ctx, r.Client, newGPUNode, nil)
 				if e != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
 				}
