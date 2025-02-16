@@ -140,8 +140,8 @@ func main() {
 			},
 		}
 
-		if err := controllerutil.SetOwnerReference(gpunode, gpu, Scheme); err != nil {
-			ctrl.Log.Error(err, "failed to set owner reference")
+		if err := controllerutil.SetControllerReference(gpunode, gpu, Scheme); err != nil {
+			ctrl.Log.Error(err, "failed to set controller reference")
 			os.Exit(1)
 		}
 
