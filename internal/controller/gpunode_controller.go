@@ -156,11 +156,17 @@ func (r *GPUNodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if pod.Status.Phase != corev1.PodRunning {
 		delay := 5 * time.Second
 		node.Status.Phase = tfv1.TensorFusionGPUNodePhasePending
-		r.Status().Update(ctx, node)
+		err = r.Status().Update(ctx, node)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update GPU node status: %w", err)
+		}
 		return ctrl.Result{RequeueAfter: delay}, nil
 	} else {
 		node.Status.Phase = tfv1.TensorFusionGPUNodePhaseRunning
-		r.Status().Update(ctx, node)
+		err = r.Status().Update(ctx, node)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to update GPU node status: %w", err)
+		}
 	}
 
 	return ctrl.Result{}, nil
