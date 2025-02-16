@@ -108,7 +108,7 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 				if err := controllerutil.SetControllerReference(node, gpuNode, r.Scheme); err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to set controller reference: %w", err)
 				}
-				_, e := controllerutil.CreateOrUpdate(ctx, r.Client, gpuNode, nil)
+				_, e := controllerutil.CreateOrUpdate(ctx, r.Client, gpuNode, func() error { return nil })
 				if e != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to create or patch GPUNode: %w", e)
 				}
