@@ -20,8 +20,6 @@ import (
 )
 
 // Controller and trigger logic for abstract layer of node provisioning
-// TODO: implement the logic
-
 func (r *GPUPoolReconciler) reconcilePoolCapacityWithProvisioner(ctx context.Context, pool *tfv1.GPUPool) (bool, error) {
 	log := log.FromContext(ctx)
 	// check if min resource constraint is satisfied

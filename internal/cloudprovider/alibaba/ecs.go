@@ -119,7 +119,6 @@ func (p AlibabaGPUNodeProvider) CreateNode(ctx context.Context, param *types.Nod
 		return nil, fmt.Errorf("instance creation failed: %s", response.String())
 	}
 
-	// TODO, SHOULD use request id to check instance status util created
 	return &types.GPUNodeStatus{
 		InstanceID: response.RequestId,
 		CreatedAt:  time.Now(),

@@ -43,7 +43,6 @@ type GPUReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *GPUReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// TODO: Calculate tflops and update capacity here
 	return ctrl.Result{}, nil
 }
 

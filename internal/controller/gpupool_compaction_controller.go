@@ -70,7 +70,10 @@ func (r *GPUPoolCompactionReconciler) checkNodeCompaction(ctx context.Context, p
 			// Not is in-using, should not be terminated
 			continue
 		}
-
+		if gpuNode.Status.Phase != tfv1.TensorFusionGPUNodePhaseRunning {
+			// Not running, should not be terminated
+			continue
+		}
 		// Protect new nodes at least 5 minutes to avoid flapping
 		if gpuNode.CreationTimestamp.Time.After(time.Now().Add(newNodeProtectionDuration)) {
 			continue

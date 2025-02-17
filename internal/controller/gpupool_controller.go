@@ -65,8 +65,9 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
+	// TODO: if phase is destorying, stop all existing workers and hypervisors, stop time series flow aggregations
 	deleted, err := utils.HandleFinalizer(ctx, pool, r.Client, func(ctx context.Context, pool *tfv1.GPUPool) error {
-		// TODO: stop all existing workers and hypervisors, stop time series flow aggregations
+		// TODO: stop all existing components
 		return nil
 	})
 	if err != nil {
@@ -101,9 +102,7 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	// if !isProvisioningMode {
-	// TODO: move GPUNode CR creation here, rather than node_controller
-	// }
+	
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
 
@@ -172,5 +171,6 @@ func (r *GPUPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&tfv1.GPUPool{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Named("gpupool").
+		Owns(&tfv1.GPUNode{}).
 		Complete(r)
 }
