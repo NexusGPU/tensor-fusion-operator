@@ -99,7 +99,14 @@ func (r *NodeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 			return ctrl.Result{}, err
 		}
 		if !matched {
-			log.Info("No matched GPU pool found, skip reconcile the Node", "node", node.Name, "labels", node.Labels)
+			// delete gpunode if no matched pool
+			if err := r.Client.Delete(ctx, &tfv1.GPUNode{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: node.Name,
+				},
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("can not delete gpuNode(%s) : %w", node.Name, err)
+			}
 			return ctrl.Result{}, nil
 		}
 
