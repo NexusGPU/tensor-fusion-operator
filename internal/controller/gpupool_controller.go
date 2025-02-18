@@ -65,7 +65,7 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{}, err
 	}
 
-	// TODO: if phase is destorying, stop all existing workers and hypervisors, stop time series flow aggregations
+	// TODO: if phase is destroying, stop all existing workers and hypervisors, stop time series flow aggregations
 	deleted, err := utils.HandleFinalizer(ctx, pool, r.Client, func(ctx context.Context, pool *tfv1.GPUPool) error {
 		// TODO: stop all existing components
 		return nil
@@ -102,7 +102,6 @@ func (r *GPUPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 
-	
 	// TODO, when componentConfig changed, it should notify corresponding resource to upgrade
 	// eg. when hypervisor changed, should change all owned GPUNode's status.phase to Updating
 
