@@ -212,6 +212,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 				if err != nil {
 					return nil, fmt.Errorf("apply strategic merge patch to container: %w", err)
 				}
+				container = &corev1.Container{}
 				if err := json.Unmarshal(patchedJSON, container); err != nil {
 					return nil, fmt.Errorf("unmarshal patched container: %w", err)
 				}
@@ -233,6 +234,7 @@ func (m *TensorFusionPodMutator) patchTFClient(pod *corev1.Pod, clientConfig *tf
 					Value: fmt.Sprintf("%s/api/connection?name=%s&namespace=%s", clientConfig.OperatorEndpoint, connectionName, connectionNamespace),
 				})
 			}
+			pod.Spec.Containers[i] = *container
 		}
 	}
 

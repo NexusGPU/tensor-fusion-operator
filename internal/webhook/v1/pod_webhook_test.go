@@ -84,19 +84,22 @@ var _ = Describe("TensorFusionPodMutator", func() {
 							Image: "test-image",
 							Env: []corev1.EnvVar{
 								{
-									Name:  constants.ConnectionNameEnv,
-									Value: "conn1",
+									Name: "A",
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+									},
 								},
 								{
-									Name:  constants.ConnectionNamespaceEnv,
-									Value: "ns",
+									Name:  "B",
+									Value: "B",
 								},
 							},
 						},
 					},
 				},
 			}
-
 			podBytes, err := json.Marshal(pod)
 			Expect(err).NotTo(HaveOccurred())
 
