@@ -62,7 +62,7 @@ controller:
 agent:
   enrollToken: "token-from-cloud"
   agentId: 'org-from-cloud:env'
-  cloudEndpoint: "wss://api.tensor-fusion.ai/_ws"
+  cloudEndpoint: "wss://app.tensor-fusion.ai/_ws"
   
   image:
     repository: tensorfusion/tensor-fusion-agent

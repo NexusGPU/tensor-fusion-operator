@@ -1,121 +1,165 @@
-# tensor-fusion-operator
-// TODO(user): Add simple overview of use/purpose
+<p align="center"><a href="javascript:void(0);" target="_blank" rel="noreferrer"><img width="300" src="https://cdn.tensor-fusion.ai/tensor-fusion.png" alt="Logo"></a></p>
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+<p align="center">
+    <strong><a href="https://tensor-fusion.ai" target="_blank">TensorFusion.AI</a></strong><br/>Next-Generation GPU Virtualization and Pooling for Enterprises<br><b>Less GPUs, More AI Apps.</b>
+    <br />
+    <a href="https://tensor-fusion.ai/guide/overview"><strong>Explore the docs »</strong></a>
+    <br />
+    <a href="https://tensor-fusion.ai/guide/overview">View Demo</a>
+    |
+    <a href="https://github.com/NexusGPU/tensor-fusion/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    |
+    <a href="https://github.com/NexusGPU/tensor-fusion/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
 
-## Getting Started
 
-### Prerequisites
-- go version v1.22.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+# ♾️ Tensor Fusion
 
-### Add new API
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
+Tensor Fusion is a state-of-the-art **GPU virtualization and pooling solution** designed to optimize GPU cluster utilization to its fullest potential.
+
+<a href="https://tensor-fusion.ai/guide/overview"><b>English</b></a>
+    |
+    <a href="./README-zh.md">简体中文</a>
+<br />
+
+## 🌟 Highlights
+
+#### 📐 Fractional GPU with Single TFlops/MiB Precision
+#### 🔄 Battle-tested GPU-over-IP Remote GPU Sharing 
+#### ⚖️ GPU-first Scheduling and Auto-scaling
+#### 📊 Computing Oversubscription and GPU VRAM Expansion
+#### 🛫 GPU Live Migration
+
+## 🎬 Demo
+
+WIP
+
+## 🚀 Quick Start
+
+### Onboard Your Own AI Infra
+
+- [Getting Started on Kubernetes](https://tensor-fusion.ai/guide/deployment-k8s)
+- [Getting Started on VM](https://tensor-fusion.ai/guide/deployment-vm)
+- [Deploy Self-hosted Community Edition](https://tensor-fusion.ai/guide/self-host)
+
+### Try it out
+
+- Explore the demo account: [Demo Console - Working in progress](https://app.tensor-fusion.ai?hint=demo)
+
+- Run following command to try TensorFusion in 3 minutes
 
 ```bash
-kubebuilder create api --group "" --version v1 --kind SchedulingConfigTemplate --namespaced false
+# Step 1: Install TensorFusion in Kubernetes
+helm install --repo https://nexusgpu.github.io/tensor-fusion/ --create-namespace
+
+# Step 2. Onboard GPU nodes into TensorFusion cluster
+kubectl apply -f https://raw.githubusercontent.com/NexusGPU/tensor-fusion/main/manifests/gpu-node.yaml
+
+# Step 3. Check if cluster and pool is ready
+kubectl get gpupools -o wide && kubectl get gpunodes -o wide
+
+# Step3. Create an inference app using virtual, remote GPU resources in TensorFusion cluster
+kubectl apply -f https://raw.githubusercontent.com/NexusGPU/tensor-fusion/main/manifests/inference-app.yaml
+
+# Then you can forward the port to test inference, or exec shell
 ```
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+(TODO: Asciinema)
 
-```sh
-make docker-build docker-push IMG=<some-registry>/tensor-fusion-operator:tag
-```
+### 💬 Discussion
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+- Discord channel: [https://discord.gg/2bybv9yQNk](https://discord.gg/2bybv9yQNk)
+- Discuss anything about TensorFusion: [Github Discussions](https://github.com/NexusGPU/tensor-fusion/discussions)
+- Contact us with WeCom for Greater China region: [企业微信](https://work.weixin.qq.com/ca/cawcde42751d9f6a29) 
+- Email us: [support@tensor-fusion.com](mailto:support@tensor-fusion.com)
+- Schedule [1:1 meeting with TensorFusion founders](https://tensor-fusion.ai/book-demo)
 
-**Install the CRDs into the cluster:**
 
-```sh
-make install
-```
+## 🔮 Features & Roadmap
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+### Core GPU Virtualization Features
 
-```sh
-make deploy IMG=<some-registry>/tensor-fusion-operator:tag
-```
+- [x] Fractional GPU and flexible oversubscription
+- [x] GPU-over-IP, remote GPU sharing with less than 4% performance loss
+- [x] GPU VRAM expansion or swap to host RAM
+- [ ] None NVIDIA GPU/NPU vendor support
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+### Pooling & Scheduling & Management
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+- [x] GPU/NPU pool management in Kubernetes
+- [x] GPU-first resource scheduler based on virtual TFlops/VRAM capacity
+- [x] GPU-first auto provisioning and bin-packing
+- [x] Seamless onboarding experience for Pytorch, TensorFlow, llama.cpp, vLLM, Tensor-RT, SGlang and all popular AI training/serving frameworks
+- [x] Basic management console and dashboards
+- [ ] Basic autoscaling policies, auto set requests/limits/replicas
+- [ ] GPU Group scheduling for LLMs
+- [ ] Support different QoS levels
 
-```sh
-kubectl apply -k config/samples/
-```
+### Enterprise Features
 
->**NOTE**: Ensure that the samples has default values to test it out.
+- [x] GPU live-migration, fastest in the world
+- [ ] Preloading and P2P distribution of container images, AI models, GPU snapshots etc.
+- [ ] Advanced auto-scaling policies, scale to zero, rebalance of hot GPUs
+- [ ] Advanced observability features, detailed metrics & tracing/profiling of CUDA calls
+- [ ] Multi-tenancy billing based on actual usage
+- [ ] Enterprise level high availability and resilience, support topology aware scheduling, GPU node auto failover etc.
+- [ ] Enterprise level security, complete on-premise deployment support, encryption in-transit & at-rest
+- [ ] Enterprise level compliance, SSO/SAML support, advanced audit, ReBAC control, SOC2 and other compliance reports available
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+### 🗳️ Platform Support
 
-```sh
-kubectl delete -k config/samples/
-```
+- [x] Run on Linux Kubernetes clusters
+- [x] Run on Linux VMs or Bare Metal (one-click onboarding to Edge K3S)
+- [x] Run on Windows (Docs not ready, contact us for support)
+- [ ] Run on MacOS (Imagining mount a virtual NVIDIA GPU device on MacOS!)
 
-**Delete the APIs(CRDs) from the cluster:**
+See the [open issues](https://github.com/NexusGPU/tensor-fusion/issues) for a full list of proposed features (and known issues).
 
-```sh
-make uninstall
-```
+## 🙏 Contributing
 
-**UnDeploy the controller from the cluster:**
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-```sh
-make undeploy
-```
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
 
-## Project Distribution
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-Following are the steps to build the installer and distribute this project to users.
+### Top contributors
 
-1. Build the installer for the image built and published in the registry:
+<a href="https://github.com/NexusGPU/tensor-fusion/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=NexusGPU/tensor-fusion" alt="contrib.rocks image" />
+</a>
 
-```sh
-make build-installer IMG=<some-registry>/tensor-fusion-operator:tag
-```
+<!-- LICENSE -->
+## 🔷 License
 
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
+1. This repo is open sourced with [Apache 2.0 License](./LICENSE), which includes **GPU pooling, scheduling, management features**, you can use it for free and modify it.
+2. **GPU virtualization and GPU-over-IP features** are also free to use as the part of **Community Plan**, the implementation is not fully open sourced
+3. Features mentioned in "**Enterprise Features**" above are paid, **licensed users can automatically unlock these features**.
 
-2. Using the installer
-
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/tensor-fusion-operator/<tag or branch>/dist/install.yaml
-```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2024.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/NexusGPU/tensor-fusion.svg?style=for-the-badge
+[contributors-url]: https://github.com/NexusGPU/tensor-fusion/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/NexusGPU/tensor-fusion.svg?style=for-the-badge
+[forks-url]: https://github.com/NexusGPU/tensor-fusion/network/members
+[stars-shield]: https://img.shields.io/github/stars/NexusGPU/tensor-fusion.svg?style=for-the-badge
+[stars-url]: https://github.com/NexusGPU/tensor-fusion/stargazers
+[issues-shield]: https://img.shields.io/github/issues/NexusGPU/tensor-fusion.svg?style=for-the-badge
+[issues-url]: https://github.com/NexusGPU/tensor-fusion/issues
+[license-shield]: https://img.shields.io/github/license/NexusGPU/tensor-fusion.svg?style=for-the-badge
+[license-url]: https://github.com/NexusGPU/tensor-fusion/blob/master/LICENSE
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/company/tensor-fusion/about
 
